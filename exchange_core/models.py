@@ -1,9 +1,10 @@
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Optional
 import time
 import uuid
-from typing import Optional
 
 
 class Side(str, Enum):
@@ -13,7 +14,7 @@ class Side(str, Enum):
 
 class OrderType(str, Enum):
     LIMIT = "LIMIT"
-    MARKET = "MARKET"   # NOTE: market order handling is TODO in matcher.py
+    MARKET = "MARKET"
 
 
 class OrderStatus(str, Enum):
@@ -40,7 +41,7 @@ class Order:
     side: Side
     type: OrderType
     qty: int
-    price_cents: Optional[int] = None  # required for LIMIT; None for MARKET
+    price_cents: Optional[int] = None
     client_order_id: Optional[str] = None
 
     order_id: str = field(default_factory=new_id)
@@ -48,17 +49,19 @@ class Order:
     remaining_qty: int = field(init=False)
     status: OrderStatus = field(default=OrderStatus.NEW)
     active: bool = field(default=True)
+    reject_reason: Optional[str] = field(default=None)
 
     def __post_init__(self) -> None:
         if self.qty <= 0:
             raise ValueError("qty must be > 0")
+
         if self.type == OrderType.LIMIT:
             if self.price_cents is None or self.price_cents <= 0:
                 raise ValueError("LIMIT orders require price_cents > 0")
-        else:
-            # MARKET order should not have price
+        elif self.type == OrderType.MARKET:
             if self.price_cents is not None:
                 raise ValueError("MARKET orders must not specify price_cents")
+
         self.remaining_qty = self.qty
 
 
