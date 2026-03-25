@@ -122,3 +122,37 @@ def get_all_commands():
         })
 
     return commands
+
+
+#Login AUTH
+
+def create_user(username,email,password):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+                INSERT INTO users (username,email,password)
+                VALUES (%s, %s, %s)
+                RETURNING id
+            """, (username,email,password))
+    user_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    return user_id
+
+def get_user_by_email(email):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT id, username, email, password
+        FROM users
+        WHERE email = %s
+    """, (email,))
+
+    user = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    return user
