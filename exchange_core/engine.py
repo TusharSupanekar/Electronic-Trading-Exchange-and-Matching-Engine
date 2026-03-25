@@ -179,6 +179,10 @@ class MatchingEngineService:
             if not self.is_replaying:
                 insert_trade(t)
 
+            maker = self.orders.get(t.maker_order_id)
+            taker = self.orders.get(t.taker_order_id)
+
+
             trade_event = {
                 "type": "TradeExecuted",
                 "seq": cmd.seq,
@@ -188,6 +192,10 @@ class MatchingEngineService:
                 "qty": t.qty,
                 "maker_order_id": t.maker_order_id,
                 "taker_order_id": t.taker_order_id,
+                "maker_user_id": maker.user_id if maker else None,
+                "taker_user_id": taker.user_id if taker else None,
+                "maker_side": maker.side.value if maker else None,
+                "taker_side": taker.side.value if taker else None,
                 "ts_ms": t.ts_ms,
             }
             self.trades.append(trade_event)

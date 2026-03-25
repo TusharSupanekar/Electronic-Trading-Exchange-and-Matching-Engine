@@ -5,15 +5,17 @@ import json
 from contextlib import asynccontextmanager
 from typing import Optional, List
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, APIRouter, Query
+from fastapi.middleware.cors import CORSMiddleware
+from docker import repository 
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from docker.db import get_connection
 
 from engine import Sequencer, MatchingEngineService, Command
 from publisher import WebSocketPublisher, event_fanout_loop
 from models import Order, Side, OrderType, now_ms
 from docker.repository import insert_command
-
 
 sequencer = Sequencer()
 engine = MatchingEngineService(symbol="AAPL")
@@ -34,7 +36,10 @@ async def lifespan(app: FastAPI):
     fanout_task.cancel()
 
 
+router = APIRouter()
+
 app = FastAPI(title="Electronic Trading Exchange - Replay Enabled", lifespan=lifespan)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -42,6 +47,8 @@ app.add_middleware(
         "http://127.0.0.1:5500",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
         "null"
     ],
     allow_credentials=True,
@@ -270,3 +277,177 @@ async def stream(ws: WebSocket):
         publisher.disconnect(ws)
     except Exception:
         publisher.disconnect(ws)
+
+#Register api
+@app.post("/register")
+def register(data: dict):
+    username = data["username"]
+    email = data["email"]
+    password = data["password"]
+    user_id =  repository.create_user(username,email,password)
+    return{
+        "message": "user created successfully",
+        "user_id": user_id  
+    }
+
+#login api
+@app.post("/login")
+def login(data: dict):
+    email = data.get("email")
+    password = data.get("password")
+
+    user = repository.get_user_by_email(email)
+
+    if user is None:
+        return {"error": "User not found"}
+
+    if user[3] != password:
+        return {"error": "Invalid password"}
+
+    return {
+        "message": "Login success",
+        "user_id": user[0],
+        "username": user[1],
+        "email": user[2]
+    }
+
+
+@app.get("/pnl")
+async def get_pnl(user_id: str):
+    total_buy = 0
+    total_sell = 0
+
+    for t in engine.trades:
+        trade_value = (t["price_cents"] * t["qty"]) / 100
+
+        # taker side
+        if t.get("taker_user_id") == user_id:
+            if t.get("taker_side") == "BUY":
+                total_buy += trade_value
+            elif t.get("taker_side") == "SELL":
+                total_sell += trade_value
+
+        # maker side
+        if t.get("maker_user_id") == user_id:
+            if t.get("maker_side") == "BUY":
+                total_buy += trade_value
+            elif t.get("maker_side") == "SELL":
+                total_sell += trade_value
+
+    pnl = total_sell - total_buy
+
+    return {
+        "user_id": user_id,
+        "total_buy": round(total_buy, 2),
+        "total_sell": round(total_sell, 2),
+        "pnl": round(pnl, 2),
+    }
+
+@app.get("/users")
+def get_users():
+    users = repository.get_all_users()
+    return {
+        "users": [
+            {
+                "user_id": u[0],
+                "username": u[1],
+                "email": u[2]
+            }
+            for u in users
+        ]
+    }
+
+
+@app.get("/candles")
+def get_candles(
+    symbol: str = Query(...),
+    interval: str = Query("1m"),
+    limit: int = Query(100)
+):
+    if interval == "1m":
+        bucket_size = 60000
+    elif interval == "5m":
+        bucket_size = 300000
+    elif interval == "15m":
+        bucket_size = 900000
+    else:
+        bucket_size = 60000
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    query = f"""
+        WITH recent_trades AS (
+            SELECT *
+            FROM trades
+            WHERE symbol = %s
+            ORDER BY ts_ms DESC
+            LIMIT 5000
+        ),
+        bucketed AS (
+            SELECT
+                symbol,
+                price_cents,
+                qty,
+                ts_ms,
+                floor(ts_ms::numeric / {bucket_size}) * {bucket_size} AS bucket_ms
+            FROM recent_trades
+        ),
+        ranked AS (
+            SELECT
+                bucket_ms,
+                price_cents,
+                ts_ms,
+                ROW_NUMBER() OVER (PARTITION BY bucket_ms ORDER BY ts_ms ASC) AS rn_open,
+                ROW_NUMBER() OVER (PARTITION BY bucket_ms ORDER BY ts_ms DESC) AS rn_close
+            FROM bucketed
+        ),
+        agg AS (
+            SELECT
+                bucket_ms,
+                MAX(price_cents) AS high,
+                MIN(price_cents) AS low
+            FROM bucketed
+            GROUP BY bucket_ms
+        ),
+        open_prices AS (
+            SELECT bucket_ms, price_cents AS open
+            FROM ranked
+            WHERE rn_open = 1
+        ),
+        close_prices AS (
+            SELECT bucket_ms, price_cents AS close
+            FROM ranked
+            WHERE rn_close = 1
+        )
+        SELECT
+            a.bucket_ms,
+            o.open,
+            a.high,
+            a.low,
+            c.close
+        FROM agg a
+        JOIN open_prices o ON a.bucket_ms = o.bucket_ms
+        JOIN close_prices c ON a.bucket_ms = c.bucket_ms
+        ORDER BY a.bucket_ms DESC
+        LIMIT %s
+    """
+
+    cur.execute(query, (symbol, limit))
+    rows = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    rows.reverse()
+
+    return [
+        {
+            "time": int(row[0] // 1000),
+            "open": float(row[1]) / 100,
+            "high": float(row[2]) / 100,
+            "low": float(row[3]) / 100,
+            "close": float(row[4]) / 100,
+        }
+        for row in rows
+    ]
