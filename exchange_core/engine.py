@@ -7,7 +7,12 @@ from typing import Any, Dict, List, Optional, Tuple
 from models import Order, Side, OrderType
 from matcher import match_order
 from orderbook import OrderBook
-from docker.repository import insert_order, update_order, insert_trade, get_all_commands
+from docker.repository import (
+    insert_order,
+    update_order,
+    insert_trade,
+    get_all_commands,
+)
 
 
 @dataclass
@@ -18,9 +23,6 @@ class Command:
 
 
 class Sequencer:
-    """
-    In-memory monotonic sequencer + basic idempotency mapping.
-    """
     def __init__(self) -> None:
         self._seq = 0
         self._lock = asyncio.Lock()
@@ -55,15 +57,6 @@ class Sequencer:
 
 
 class MatchingEngineService:
-    """
-    Single-writer matching engine service.
-
-    Responsibilities:
-    - process commands sequentially
-    - update in-memory order book
-    - persist orders/trades during live processing
-    - rebuild exchange state from command log during replay
-    """
     def __init__(self, symbol: str = "AAPL") -> None:
         self.book = OrderBook(symbol)
         self.command_queue: asyncio.Queue[Command] = asyncio.Queue()
@@ -91,15 +84,9 @@ class MatchingEngineService:
                 await self._handle_cancel_order(cmd)
 
     async def replay_from_db(self) -> None:
-        """
-        Rebuild in-memory state by replaying commands in sequence order.
-        No DB writes or WS broadcasts should happen during replay.
-        """
         commands = get_all_commands()
 
         self.is_replaying = True
-
-        # reset in-memory state
         self.book = OrderBook(self.book.symbol)
         self.trades = []
         self.orders = {}
@@ -120,7 +107,6 @@ class MatchingEngineService:
                     price_cents=payload["price_cents"],
                     client_order_id=payload.get("client_order_id"),
                 )
-                # restore original IDs/timestamps
                 order.order_id = payload["order_id"]
                 order.created_ms = payload["created_ms"]
 
@@ -141,10 +127,8 @@ class MatchingEngineService:
 
     async def _handle_new_order(self, cmd: Command) -> None:
         order: Order = cmd.payload["order"]
-
         self.orders[order.order_id] = order
 
-        # only persist during live processing
         if not self.is_replaying:
             insert_order(order)
 

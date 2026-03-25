@@ -17,8 +17,6 @@ class ClientSubscription:
 
 class WebSocketPublisher:
     """
-    Channel-based publisher.
-
     Supported channels:
     - l1
     - book
