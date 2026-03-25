@@ -89,7 +89,7 @@
     }
 
     .log {
-      max-height: 180px;
+      max-height: 150px;
       overflow-y: auto;
       background: #020617;
       padding: 10px;
@@ -126,7 +126,6 @@
     <div class="grid">
       <div class="card">
         <h2>Place Order</h2>
-
         <label>User ID</label>
         <input id="userId" value="buyer1" />
 
@@ -242,11 +241,13 @@
       asksBody.innerHTML = "";
 
       latestBook.bids.forEach(([price, qty]) => {
-        bidsBody.innerHTML += `<tr><td class="green">${formatPrice(price)}</td><td>${qty}</td></tr>`;
+        const row = `<tr><td class="green">${formatPrice(price)}</td><td>${qty}</td></tr>`;
+        bidsBody.innerHTML += row;
       });
 
       latestBook.asks.forEach(([price, qty]) => {
-        asksBody.innerHTML += `<tr><td class="red">${formatPrice(price)}</td><td>${qty}</td></tr>`;
+        const row = `<tr><td class="red">${formatPrice(price)}</td><td>${qty}</td></tr>`;
+        asksBody.innerHTML += row;
       });
 
       const bestBid = latestBook.bids[0] || null;
@@ -265,7 +266,6 @@
     function renderTrades() {
       const tbody = document.getElementById("tradesBody");
       tbody.innerHTML = "";
-
       latestTrades.slice(0, 25).forEach(t => {
         tbody.innerHTML += `
           <tr>
@@ -285,7 +285,7 @@
         asks: data.asks || []
       };
       renderBook();
-      log("Loaded initial book snapshot");
+      log("Loaded initial order book snapshot");
     }
 
     async function loadTrades() {
@@ -293,7 +293,6 @@
       const data = await res.json();
       latestTrades = data.trades || [];
       renderTrades();
-      log("Loaded recent trades");
     }
 
     async function loadOrders() {
@@ -314,7 +313,9 @@
             <td>${order.remaining_qty}</td>
             <td>${order.price_cents ? formatPrice(order.price_cents) : "MKT"}</td>
             <td>${order.status}</td>
-            <td><button onclick="cancelOrder('${order.order_id}')">Cancel</button></td>
+            <td>
+              <button onclick="cancelOrder('${order.order_id}')">Cancel</button>
+            </td>
           </tr>
         `;
       });
@@ -342,7 +343,9 @@
 
       const res = await fetch(`${API_BASE}/orders`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify(payload)
       });
 
@@ -399,12 +402,18 @@
           };
           renderBook();
         } else if (msg.type === "BookL1") {
-          // optional top-of-book update
+          if (msg.best_bid) {
+            if (latestBook.bids.length > 0) latestBook.bids[0] = msg.best_bid;
+            else latestBook.bids = [msg.best_bid];
+          }
+          if (msg.best_ask) {
+            if (latestBook.asks.length > 0) latestBook.asks[0] = msg.best_ask;
+            else latestBook.asks = [msg.best_ask];
+          }
           renderBook();
         } else if (msg.type === "TradeExecuted") {
           latestTrades.unshift(msg);
           renderTrades();
-          log(`Trade: ${msg.qty} @ ${formatPrice(msg.price_cents)} (seq ${msg.seq})`);
         } else if (msg.type === "OrderUpdate" || msg.type === "OrderAccepted") {
           loadOrders();
         }
