@@ -22,7 +22,6 @@ publisher = WebSocketPublisher()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Replay state before starting live processing
     await engine.replay_from_db()
     sequencer.set_seq(engine.seq_applied)
 
@@ -34,7 +33,11 @@ async def lifespan(app: FastAPI):
     fanout_task.cancel()
 
 
-app = FastAPI(title="Electronic Trading Exchange - Replay Enabled", lifespan=lifespan)
+app = FastAPI(
+    title="Electronic Trading Exchange - Live Dashboard",
+    lifespan=lifespan
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -42,12 +45,13 @@ app.add_middleware(
         "http://127.0.0.1:5500",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
-        "null"
+        "null",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 class CreateOrderRequest(BaseModel):
     user_id: str
@@ -217,7 +221,6 @@ async def stream(ws: WebSocket):
     try:
         while True:
             raw = await ws.receive_text()
-
             try:
                 payload = json.loads(raw)
             except json.JSONDecodeError:
