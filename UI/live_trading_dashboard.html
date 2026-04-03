@@ -3,433 +3,1069 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Electronic Trading Exchange Dashboard</title>
+  <title>EX — Electronic Trading Exchange</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- TradingView Lightweight Charts (same library used in screenshot) -->
+  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
   <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0c0c0c;
+      --surf:    #141414;
+      --panel:   #1c1c1c;
+      --input:   #101010;
+      --bdr:     #2c2c2c;
+      --bhi:     #3e3e3e;
+
+      --t1: #f0f0f0;
+      --t2: #888;
+      --t3: #484848;
+
+      --green:  #00d97e;
+      --gbg:    rgba(0,217,126,.09);
+      --gbrd:   rgba(0,217,126,.32);
+      --red:    #f0394e;
+      --rbg:    rgba(240,57,78,.09);
+      --rbrd:   rgba(240,57,78,.32);
+      --blue:   #5b8ff9;
+      --bbg:    rgba(91,143,249,.09);
+      --bbrd:   rgba(91,143,249,.32);
+      --amber:  #f5a520;
+      --purple: #a78bfa;
+
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    html, body { height: 100%; }
     body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--t1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;      /* full-screen terminal feel */
     }
-    .container {
-      max-width: 1300px;
-      margin: 0 auto;
-      padding: 20px;
+
+    ::-webkit-scrollbar { width: 3px; height: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--bhi); border-radius: 2px; }
+
+    /* ══════════════════════════ HEADER ══ */
+    .header {
+      flex-shrink: 0;
+      height: 48px;
+      background: var(--surf);
+      border-bottom: 1px solid var(--bdr);
+      display: flex; align-items: center; padding: 0 16px; gap: 0;
+      position: relative; z-index: 10;
     }
-    h1 {
-      margin-bottom: 10px;
+    .header::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--blue) 0%, var(--purple) 55%, transparent 100%);
     }
-    .topbar, .grid {
+
+    .brand { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-right: 14px; }
+    .logo {
+      width: 28px; height: 28px; border-radius: 6px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 800; color: #fff; letter-spacing: -.5px;
+    }
+    .brand-name { font-size: 12px; font-weight: 700; letter-spacing: -.3px; }
+    .brand-sub  { font-size: 9px; color: var(--t3); }
+
+    .v-sep { width: 1px; height: 22px; background: var(--bdr); margin: 0 14px; flex-shrink: 0; }
+
+    .sym-chip {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--panel); border: 1px solid var(--bdr);
+      border-radius: 5px; padding: 3px 9px;
+    }
+    .sym-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
+    .sym-name { font-size: 11px; font-weight: 700; letter-spacing: .5px; }
+
+    .mkt { display: flex; gap: 20px; margin-left: 14px; flex: 1; }
+    .ms  { display: flex; flex-direction: column; gap: 1px; }
+    .ms-lbl { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--t3); }
+    .ms-val { font-size: 13px; font-weight: 700; font-family: var(--mono); line-height: 1; letter-spacing: -.3px; }
+
+    .conn {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--panel); border: 1px solid var(--bdr);
+      border-radius: 99px; padding: 3px 11px;
+      font-size: 10px; font-weight: 600; color: var(--t2);
+      transition: all .25s; margin-left: auto; flex-shrink: 0;
+    }
+    .conn.live { background: var(--gbg); border-color: var(--gbrd); color: var(--green); }
+    .conn-dot  { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+    .conn.live .conn-dot { animation: blink 2s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ══════════════════════════ WORKSPACE ══ */
+    .workspace {
+      flex: 1;
       display: grid;
-      gap: 16px;
-    }
-    .topbar {
-      grid-template-columns: 2fr 1fr 1fr 1fr;
-      margin-bottom: 20px;
-    }
-    .grid {
-      grid-template-columns: 1fr 1fr 1fr;
-    }
-    .card {
-      background: #1e293b;
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
-    }
-    .label {
-      font-size: 12px;
-      color: #94a3b8;
-      margin-bottom: 8px;
-    }
-    .value {
-      font-size: 26px;
-      font-weight: bold;
-    }
-    .green { color: #22c55e; }
-    .red { color: #ef4444; }
-
-    input, select, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 8px;
-      border-radius: 8px;
-      border: none;
-      box-sizing: border-box;
+      grid-template-columns: 262px 1fr 254px;
+      grid-template-rows: minmax(370px, 48vh) minmax(210px, 1fr) auto auto;
+      gap: 1px;
+      background: var(--bdr);
+      overflow: hidden;
+      min-height: 0;
     }
 
-    button {
-      cursor: pointer;
-      background: #3b82f6;
-      color: white;
-      font-weight: bold;
+    .panel {
+      background: var(--bg); display: flex; flex-direction: column; overflow: hidden;
+      min-height: 0;
     }
 
-    button:hover {
-      opacity: 0.9;
+    /* Panel header */
+    .ph {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 12px; background: var(--surf); border-bottom: 1px solid var(--bdr);
+      flex-shrink: 0;
+    }
+    .ph-l { display: flex; align-items: center; gap: 8px; }
+    .ph-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.1px; color: var(--t3); }
+    .ph-badge {
+      font-size: 9px; font-weight: 600; font-family: var(--mono);
+      color: var(--t2); background: var(--panel); border: 1px solid var(--bdr);
+      border-radius: 3px; padding: 1px 5px;
     }
 
-    .book-table, .orders-table, .trades-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
+    /* ══════════════════════════ CHART ══ */
+    .chart-panel { grid-column: 2; grid-row: 1; }
+    #chartContainer { flex: 1; min-height: 0; }
 
-    .book-table th, .book-table td,
-    .orders-table th, .orders-table td,
-    .trades-table th, .trades-table td {
-      padding: 8px;
-      border-bottom: 1px solid #334155;
-      text-align: left;
-      font-size: 14px;
+    /* Interval selector */
+    .iv-row { display: flex; gap: 2px; }
+    .iv-btn {
+      padding: 2px 8px; border: 1px solid var(--bdr); border-radius: 4px;
+      background: transparent; color: var(--t2); font-size: 10px; font-weight: 600;
+      cursor: pointer; transition: all .15s; font-family: 'Inter', sans-serif;
     }
+    .iv-btn:hover { border-color: var(--bhi); color: var(--t1); }
+    .iv-btn.on { background: var(--bbg); border-color: var(--bbrd); color: var(--blue); }
 
-    .scroll {
-      max-height: 320px;
-      overflow-y: auto;
+    .chart-actions { display: flex; gap: 6px; align-items: center; }
+    .icon-btn {
+      width: 22px; height: 22px; border: 1px solid var(--bdr); border-radius: 4px;
+      background: transparent; color: var(--t2); font-size: 11px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
     }
+    .icon-btn:hover { border-color: var(--bhi); color: var(--t1); }
 
-    .log {
-      max-height: 150px;
-      overflow-y: auto;
-      background: #020617;
-      padding: 10px;
-      border-radius: 8px;
-      font-size: 12px;
-      white-space: pre-wrap;
-      margin-top: 15px;
+    /* OHLC bar under chart header */
+    .ohlc-bar {
+      display: flex; gap: 14px; align-items: center;
+      padding: 3px 12px; background: var(--bg);
+      border-bottom: 1px solid var(--bdr); flex-shrink: 0;
+    }
+    .ohlc-item { display: flex; gap: 4px; align-items: baseline; }
+    .ohlc-lbl { font-size: 9px; color: var(--t3); text-transform: uppercase; letter-spacing: .5px; }
+    .ohlc-val { font-size: 11px; font-family: var(--mono); font-weight: 500; color: var(--t2); }
+
+    /* ══════════════════════════ ORDER FORM ══ */
+    .form-panel { grid-column: 1; grid-row: 1; }
+    .form-scroll { overflow-y: auto; flex: 1; padding: 12px; }
+
+    .side-toggle {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border: 1px solid var(--bdr); border-radius: 7px; overflow: hidden;
+      margin-bottom: 14px;
+    }
+    .side-btn {
+      padding: 9px 8px; font-size: 12px; font-weight: 700;
+      border: none; cursor: pointer; transition: all .18s;
+      background: var(--input); color: var(--t2); letter-spacing: .2px;
+    }
+    .side-btn:first-child { border-right: 1px solid var(--bdr); }
+    .side-btn.buy-on  { background: var(--gbg);  color: var(--green); box-shadow: inset 0 -2px 0 var(--green); }
+    .side-btn.sell-on { background: var(--rbg);  color: var(--red);   box-shadow: inset 0 -2px 0 var(--red); }
+
+    .field { margin-bottom: 10px; }
+    .fl {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .9px; color: var(--t2); margin-bottom: 4px;
+    }
+    .fh       { font-size: 9px; font-weight: 400; color: var(--t3); text-transform: none; letter-spacing: 0; }
+    .fh.amber { color: var(--amber); font-family: var(--mono); }
+
+    .ctrl {
+      width: 100%; background: var(--input); border: 1px solid var(--bdr);
+      border-radius: 6px; padding: 7px 9px; font-size: 12px;
+      font-family: var(--mono); color: var(--t1); outline: none;
+      transition: border-color .15s, box-shadow .15s; appearance: none;
+    }
+    .ctrl::placeholder { color: var(--t3); font-family: 'Inter', sans-serif; font-size: 11px; }
+    .ctrl:focus { border-color: var(--blue); box-shadow: 0 0 0 2px var(--bbg); }
+    .ctrl option { background: var(--panel); }
+
+    .pill-row { display: flex; gap: 4px; margin-top: 4px; }
+    .pill {
+      flex: 1; padding: 3px 0; border: 1px solid var(--bdr); border-radius: 4px;
+      background: var(--panel); color: var(--t2); font-size: 9px; font-weight: 600;
+      cursor: pointer; transition: all .15s; text-align: center;
+      font-family: 'Inter', sans-serif;
+    }
+    .pill:hover         { border-color: var(--bhi); color: var(--t1); }
+    .pill.g:hover { border-color: var(--gbrd); color: var(--green); background: var(--gbg); }
+    .pill.r:hover { border-color: var(--rbrd); color: var(--red);   background: var(--rbg); }
+    .pill.a:hover { border-color: rgba(245,165,32,.35); color: var(--amber); }
+
+    .sep { height: 1px; background: var(--bdr); margin: 10px 0; }
+
+    .est-box {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 10px; background: var(--panel); border: 1px solid var(--bdr);
+      border-radius: 6px; margin-bottom: 10px;
+    }
+    .est-lbl { font-size: 9px; color: var(--t2); font-weight: 700; text-transform: uppercase; letter-spacing: .7px; }
+    .est-val { font-size: 15px; font-weight: 700; font-family: var(--mono); color: var(--t1); }
+
+    .submit-btn {
+      width: 100%; padding: 11px; border: none; border-radius: 7px;
+      font-size: 13px; font-weight: 700; letter-spacing: .3px;
+      cursor: pointer; transition: filter .15s, transform .1s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .submit-btn:active { transform: scale(.98); }
+    .submit-btn.buy  { background: linear-gradient(135deg,#00d97e,#00b86a); color: #000; }
+    .submit-btn.sell { background: linear-gradient(135deg,#f0394e,#c8253a); color: #fff; }
+    .submit-btn:hover { filter: brightness(1.1); }
+
+    .btn2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 6px; }
+    .ghost {
+      padding: 6px; border: 1px solid var(--bdr); border-radius: 6px;
+      background: transparent; color: var(--t2); font-size: 10px; font-weight: 500;
+      cursor: pointer; transition: all .15s; font-family: 'Inter', sans-serif; text-align: center;
+    }
+    .ghost:hover { border-color: var(--bhi); color: var(--t1); }
+    .ghost.danger:hover { border-color: var(--rbrd); color: var(--red); background: var(--rbg); }
+
+    /* ══════════════════════════ PNL ══ */
+    .pnl-panel { grid-column: 1; grid-row: 2; }
+    .pnl-body  { padding: 10px 12px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .pnl-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .pnl-cell  { background: var(--panel); border: 1px solid var(--bdr); border-radius: 6px; padding: 8px 10px; }
+    .pnl-cell.wide { grid-column: 1/-1; }
+    .pnl-lbl   { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--t3); margin-bottom: 3px; }
+    .pnl-val   { font-size: 17px; font-weight: 700; font-family: var(--mono); letter-spacing: -.5px; }
+    .pnl-btn   {
+      padding: 5px; border: 1px solid var(--bdr); border-radius: 5px;
+      background: transparent; color: var(--t2); font-size: 10px;
+      cursor: pointer; transition: all .15s; font-family: 'Inter', sans-serif;
+      margin-top: auto;
+    }
+    .pnl-btn:hover { border-color: var(--bhi); color: var(--t1); }
+
+    /* ══════════════════════════ ORDER BOOK ══ */
+    .book-panel { grid-column: 3; grid-row: 1 / 3; }
+    .book-inner { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+    .book-half  { flex: 1; overflow-y: auto; min-height: 0; }
+
+    .btbl { width: 100%; border-collapse: collapse; }
+    .btbl thead th {
+      position: sticky; top: 0; background: var(--surf);
+      font-size: 8px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--t3); padding: 5px 12px;
+      text-align: left; border-bottom: 1px solid var(--bdr);
+    }
+    .btbl thead th:nth-child(2),
+    .btbl thead th:nth-child(3) { text-align: right; }
+    .btbl td { padding: 4px 12px; font-size: 11px; font-family: var(--mono); }
+    .btbl tbody tr { position: relative; }
+    .btbl tbody tr:hover td { background: rgba(255,255,255,.025); }
+
+    .df { position: absolute; top: 0; right: 0; height: 100%; pointer-events: none; opacity: .13; }
+    .df.a { background: var(--red); }
+    .df.b { background: var(--green); }
+    .ap { color: var(--red);   font-weight: 600; }
+    .bp { color: var(--green); font-weight: 600; }
+    .bq { text-align: right; }
+    .bt { text-align: right; color: var(--t2); font-size: 10px; }
+
+    .sp-band {
+      padding: 5px 12px; background: var(--surf);
+      border-top: 1px solid var(--bdr); border-bottom: 1px solid var(--bdr);
+      display: flex; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0;
+    }
+    .sp-line { flex: 1; height: 1px; background: var(--amber); opacity: .25; }
+    .sp-val  { font-size: 10px; font-family: var(--mono); color: var(--amber); white-space: nowrap; }
+
+    /* ══════════════════════════ TRADES ══ */
+    .trades-panel { grid-column: 2; grid-row: 2; }
+    .trades-scroll { flex: 1; overflow-y: auto; min-height: 0; }
+
+    .ttbl { width: 100%; border-collapse: collapse; }
+    .ttbl thead th {
+      position: sticky; top: 0; background: var(--surf);
+      font-size: 8px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--t3); padding: 5px 12px;
+      text-align: left; border-bottom: 1px solid var(--bdr);
+    }
+    .ttbl thead th:nth-child(2),
+    .ttbl thead th:nth-child(3) { text-align: right; }
+    .ttbl td { padding: 5px 12px; font-size: 11px; font-family: var(--mono); border-bottom: 1px solid var(--bdr); }
+    .ttbl tr:last-child td { border-bottom: none; }
+    .ttbl tbody tr:hover td { background: rgba(255,255,255,.025); }
+    .tr-r { text-align: right; }
+    .tr-d { text-align: right; color: var(--t2); font-size: 10px; }
+
+    .t-new { animation: tfade .7s ease-out forwards; }
+    @keyframes tfade { from{background:rgba(91,143,249,.2)} to{background:transparent} }
+
+    /* ══════════════════════════ MY ORDERS ══ */
+    .orders-panel { grid-column: 1 / -1; grid-row: 3; }
+    .o-scroll { overflow: auto; max-height: 180px; }
+
+    .otbl { width: 100%; border-collapse: collapse; min-width: 640px; }
+    .otbl thead th {
+      position: sticky; top: 0; background: var(--surf);
+      font-size: 8px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--t3); padding: 6px 12px;
+      text-align: left; border-bottom: 1px solid var(--bdr); white-space: nowrap;
+    }
+    .otbl thead th.r { text-align: right; }
+    .otbl td { padding: 6px 12px; font-size: 11px; font-family: var(--mono); border-bottom: 1px solid var(--bdr); white-space: nowrap; }
+    .otbl tr:last-child td { border-bottom: none; }
+    .otbl tbody tr:hover td { background: rgba(255,255,255,.02); }
+    .otbl td.r { text-align: right; }
+
+    /* ══════════════════════════ LOG ══ */
+    .log-panel { grid-column: 1 / -1; grid-row: 4; }
+    .log-area {
+      padding: 6px 12px; max-height: 96px; overflow-y: auto;
+      font-family: var(--mono); font-size: 10px; line-height: 1.75;
+    }
+    .ll { display: flex; gap: 10px; }
+    .lt { color: var(--t3); flex-shrink: 0; }
+    .lm { color: var(--t2); word-break: break-all; }
+    .lm.ok  { color: var(--green); }
+    .lm.err { color: var(--red); }
+    .lm.ws  { color: var(--blue); }
+
+    /* ══════════════════════════ COMMON ══ */
+    .buy-t  { color: var(--green); font-weight: 700; }
+    .sell-t { color: var(--red);   font-weight: 700; }
+
+    .badge {
+      display: inline-block; padding: 1px 6px; border-radius: 3px;
+      font-size: 8px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .4px; font-family: 'Inter', sans-serif;
+    }
+    .b-n  { background:rgba(167,139,250,.1); color:var(--purple); border:1px solid rgba(167,139,250,.28); }
+    .b-r  { background:var(--bbg);  color:var(--blue);  border:1px solid var(--bbrd); }
+    .b-p  { background:rgba(245,165,32,.1);  color:var(--amber); border:1px solid rgba(245,165,32,.28); }
+    .b-f  { background:var(--gbg);  color:var(--green); border:1px solid var(--gbrd); }
+    .b-c  { background:rgba(136,136,136,.08); color:var(--t2); border:1px solid var(--bdr); }
+    .b-rj { background:var(--rbg);  color:var(--red);   border:1px solid var(--rbrd); }
+
+    .xbtn {
+      padding: 2px 7px; font-size: 9px; font-weight: 600;
+      border: 1px solid var(--rbrd); background: transparent; color: var(--red);
+      border-radius: 3px; cursor: pointer; transition: all .15s;
+      font-family: 'Inter', sans-serif;
+    }
+    .xbtn:hover { background: var(--rbg); }
+    .empty { padding: 20px 12px; text-align: center; font-size: 11px; color: var(--t3); }
+
+    @media (max-width: 1100px) {
+      .workspace { grid-template-columns: 252px 1fr; grid-template-rows: 1fr 1fr auto auto auto; }
+      .chart-panel  { grid-column: 2; grid-row: 1; }
+      .book-panel   { grid-column: 2; grid-row: 2; }
+      .trades-panel { grid-column: 1 / -1; grid-row: 3; }
+      .pnl-panel    { grid-column: 1; grid-row: 2; }
+      .orders-panel { grid-row: 4; }
+      .log-panel    { grid-row: 5; }
+    }
+    @media (max-width: 700px) {
+      body { overflow-y: auto; }
+      .workspace { grid-template-columns: 1fr; grid-template-rows: auto; overflow: auto; }
+      .panel { min-height: 260px; }
+      .chart-panel { min-height: 360px; }
+      .book-panel, .form-panel, .pnl-panel, .trades-panel { grid-column: 1; grid-row: auto; }
+      .mkt { display: none; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Electronic Trading Exchange Dashboard</h1>
 
-    <div class="topbar">
-      <div class="card">
-        <div class="label">Connection</div>
-        <div class="value" id="connectionState">Disconnected</div>
-      </div>
-      <div class="card">
-        <div class="label">Best Bid</div>
-        <div class="value green" id="bestBid">--</div>
-      </div>
-      <div class="card">
-        <div class="label">Best Ask</div>
-        <div class="value red" id="bestAsk">--</div>
-      </div>
-      <div class="card">
-        <div class="label">Spread</div>
-        <div class="value" id="spread">--</div>
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header class="header">
+  <div class="brand">
+    <div class="logo">EX</div>
+    <div>
+      <div class="brand-name">Electronic Exchange</div>
+      <div class="brand-sub">Matching Engine</div>
+    </div>
+  </div>
+
+  <div class="v-sep"></div>
+
+  <div class="sym-chip">
+    <div class="sym-dot"></div>
+    <span class="sym-name" id="headerSymbol">AAPL</span>
+  </div>
+
+  <div class="mkt">
+    <div class="ms">
+      <span class="ms-lbl">Best Bid</span>
+      <span class="ms-val" style="color:var(--green)" id="bestBid">—</span>
+    </div>
+    <div class="ms">
+      <span class="ms-lbl">Best Ask</span>
+      <span class="ms-val" style="color:var(--red)" id="bestAsk">—</span>
+    </div>
+    <div class="ms">
+      <span class="ms-lbl">Spread</span>
+      <span class="ms-val" style="color:var(--amber)" id="spread">—</span>
+    </div>
+    <div class="ms">
+      <span class="ms-lbl">Last Trade</span>
+      <span class="ms-val" style="color:var(--purple)" id="lastTrade">—</span>
+    </div>
+  </div>
+
+  <div class="conn" id="connPill">
+    <div class="conn-dot"></div>
+    <span id="connectionState">Disconnected</span>
+  </div>
+</header>
+
+<!-- ═══════════════ WORKSPACE ═══════════════ -->
+<div class="workspace">
+
+  <!-- Col 1 Row 1 · Order Form -->
+  <div class="panel form-panel">
+    <div class="ph">
+      <div class="ph-l">
+        <span class="ph-title">Place Order</span>
+        <span class="ph-badge" id="formBadge">AAPL</span>
       </div>
     </div>
+    <div class="form-scroll">
 
-    <div class="grid">
-      <div class="card">
-        <h2>Place Order</h2>
-        <label>User ID</label>
-        <input id="userId" value="buyer1" />
+      <div class="side-toggle">
+        <button class="side-btn buy-on" id="btnBuy"  onclick="setSide('BUY')">▲ Buy</button>
+        <button class="side-btn"        id="btnSell" onclick="setSide('SELL')">▼ Sell</button>
+      </div>
+      <input type="hidden" id="side" value="BUY">
 
-        <label>Symbol</label>
-        <input id="symbol" value="AAPL" />
-
-        <label>Side</label>
-        <select id="side">
-          <option value="BUY">BUY</option>
-          <option value="SELL">SELL</option>
-        </select>
-
-        <label>Type</label>
-        <select id="orderType">
-          <option value="LIMIT">LIMIT</option>
-          <option value="MARKET">MARKET</option>
-        </select>
-
-        <label>Quantity</label>
-        <input id="qty" type="number" value="10" />
-
-        <label>Price (cents, only for LIMIT)</label>
-        <input id="priceCents" type="number" value="18760" />
-
-        <label>Client Order ID</label>
-        <input id="clientOrderId" value="" />
-
-        <button onclick="placeOrder()">Submit Order</button>
-        <button onclick="loadOrders()">Refresh My Orders</button>
+      <div class="field">
+        <div class="fl">User ID</div>
+        <input class="ctrl" id="userId" value="buyer1" placeholder="e.g. buyer1" />
       </div>
 
-      <div class="card">
-        <h2>Order Book</h2>
-        <div class="scroll">
-          <table class="book-table">
-            <thead>
-              <tr><th colspan="2">Bids</th></tr>
-              <tr><th>Price</th><th>Qty</th></tr>
-            </thead>
-            <tbody id="bidsBody"></tbody>
-          </table>
+      <div class="field">
+        <div class="fl">Symbol</div>
+        <input class="ctrl" id="symbol" value="AAPL" placeholder="AAPL" oninput="syncSymbol()" />
+      </div>
 
-          <table class="book-table">
-            <thead>
-              <tr><th colspan="2">Asks</th></tr>
-              <tr><th>Price</th><th>Qty</th></tr>
-            </thead>
-            <tbody id="asksBody"></tbody>
-          </table>
+      <div class="field">
+        <div class="fl">Order Type</div>
+        <select class="ctrl" id="orderType" onchange="togglePriceField()">
+          <option value="LIMIT">Limit Order</option>
+          <option value="MARKET">Market Order</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <div class="fl">Quantity</div>
+        <input class="ctrl" id="qty" type="number" value="10" min="1" oninput="updateEst()" />
+        <div class="pill-row">
+          <button class="pill" onclick="setQty(1)">1</button>
+          <button class="pill" onclick="setQty(10)">10</button>
+          <button class="pill" onclick="setQty(50)">50</button>
+          <button class="pill" onclick="setQty(100)">100</button>
         </div>
       </div>
 
-      <div class="card">
-        <h2>Trades</h2>
-        <div class="scroll">
-          <table class="trades-table">
-            <thead>
-              <tr><th>Price</th><th>Qty</th><th>Seq</th></tr>
-            </thead>
-            <tbody id="tradesBody"></tbody>
-          </table>
+      <div class="field" id="priceGroup">
+        <div class="fl">
+          Price (cents)
+          <span class="fh amber" id="priceHint">= $187.60</span>
+        </div>
+        <input class="ctrl" id="priceCents" type="number" value="18760"
+          oninput="updatePriceHint(); updateEst()" />
+        <div class="pill-row">
+          <button class="pill g" onclick="fillPrice('bid')">Bid</button>
+          <button class="pill a" onclick="fillPrice('mid')">Mid</button>
+          <button class="pill r" onclick="fillPrice('ask')">Ask</button>
         </div>
       </div>
-    </div>
 
-    <div class="card" style="margin-top:16px;">
-      <h2>My Orders</h2>
-      <div class="scroll">
-        <table class="orders-table">
-          <thead>
-            <tr>
-              <th>Order ID</th>
-              <th>Side</th>
-              <th>Type</th>
-              <th>Qty</th>
-              <th>Remaining</th>
-              <th>Price</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="ordersBody"></tbody>
+      <div class="field">
+        <div class="fl">Client Order ID <span class="fh">optional</span></div>
+        <input class="ctrl" id="clientOrderId" placeholder="auto-generated" />
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="est-box">
+        <span class="est-lbl">Estimated Total</span>
+        <span class="est-val" id="estTotal">—</span>
+      </div>
+
+      <button class="submit-btn buy" id="submitBtn" onclick="placeOrder()">
+        ▲ &nbsp;Place Buy Order
+      </button>
+
+      <div class="btn2">
+        <button class="ghost" onclick="loadOrders()">↺ Refresh</button>
+        <button class="ghost danger" onclick="cancelAllOrders()">✕ Cancel All</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Col 2 Row 1 · Candlestick Chart -->
+  <div class="panel chart-panel">
+    <div class="ph">
+      <div class="ph-l">
+        <span class="ph-title">Chart</span>
+        <span class="ph-badge" id="chartSymbolBadge">AAPL</span>
+        <div class="iv-row">
+          <button class="iv-btn on" id="iv1m"  onclick="changeInterval('1m',  this)">1m</button>
+          <button class="iv-btn"    id="iv5m"  onclick="changeInterval('5m',  this)">5m</button>
+          <button class="iv-btn"    id="iv15m" onclick="changeInterval('15m', this)">15m</button>
+        </div>
+      </div>
+      <div class="chart-actions">
+        <button class="icon-btn" onclick="fitChart()" title="Fit all">⊡</button>
+      </div>
+    </div>
+    <!-- OHLC readout (updated on crosshair hover) -->
+    <div class="ohlc-bar" id="ohlcBar">
+      <div class="ohlc-item"><span class="ohlc-lbl">O</span><span class="ohlc-val" id="ohlcO">—</span></div>
+      <div class="ohlc-item"><span class="ohlc-lbl">H</span><span class="ohlc-val" id="ohlcH" style="color:var(--green)">—</span></div>
+      <div class="ohlc-item"><span class="ohlc-lbl">L</span><span class="ohlc-val" id="ohlcL" style="color:var(--red)">—</span></div>
+      <div class="ohlc-item"><span class="ohlc-lbl">C</span><span class="ohlc-val" id="ohlcC">—</span></div>
+    </div>
+    <div id="chartContainer"></div>
+  </div>
+
+  <!-- Col 3 Rows 1–2 · Order Book -->
+  <div class="panel book-panel">
+    <div class="ph">
+      <span class="ph-title">Order Book</span>
+      <span class="ph-badge" id="bookSymbolLabel">AAPL</span>
+    </div>
+    <div class="book-inner">
+      <div class="book-half">
+        <table class="btbl">
+          <thead><tr><th>Price</th><th>Qty</th><th>Total</th></tr></thead>
+          <tbody id="asksBody"><tr><td colspan="3" class="empty">No asks</td></tr></tbody>
+        </table>
+      </div>
+      <div class="sp-band" id="spreadBand" style="display:none">
+        <div class="sp-line"></div>
+        <span class="sp-val" id="spreadBandVal">Spread —</span>
+        <div class="sp-line"></div>
+      </div>
+      <table style="display:none"><tbody id="spreadRow"></tbody></table>
+      <div class="book-half">
+        <table class="btbl">
+          <thead><tr><th>Price</th><th>Qty</th><th>Total</th></tr></thead>
+          <tbody id="bidsBody"><tr><td colspan="3" class="empty">No bids</td></tr></tbody>
         </table>
       </div>
     </div>
-
-    <div class="log" id="log"></div>
   </div>
 
-  <script>
-    const API_BASE = "http://127.0.0.1:8000";
-    const WS_URL = "ws://127.0.0.1:8000/stream";
+  <!-- Col 1 Row 2 · P&L -->
+  <div class="panel pnl-panel">
+    <div class="ph">
+      <span class="ph-title">P&amp;L</span>
+      <span class="ph-badge" id="pnlUser">—</span>
+    </div>
+    <div class="pnl-body">
+      <div class="pnl-grid">
+        <div class="pnl-cell">
+          <div class="pnl-lbl">Total Buy</div>
+          <div class="pnl-val" id="pnlBuy" style="color:var(--green)">—</div>
+        </div>
+        <div class="pnl-cell">
+          <div class="pnl-lbl">Total Sell</div>
+          <div class="pnl-val" id="pnlSell" style="color:var(--red)">—</div>
+        </div>
+        <div class="pnl-cell wide">
+          <div class="pnl-lbl">Net P&amp;L</div>
+          <div class="pnl-val" id="pnlNet">—</div>
+        </div>
+      </div>
+      <button class="pnl-btn" onclick="loadPnl()">↺ &nbsp;Refresh P&amp;L</button>
+    </div>
+  </div>
 
-    let ws = null;
-    let latestBook = { bids: [], asks: [] };
-    let latestTrades = [];
+  <!-- Col 2 Row 2 · Trades -->
+  <div class="panel trades-panel">
+    <div class="ph">
+      <span class="ph-title">Recent Trades</span>
+      <span class="ph-badge" id="tradesCount">0</span>
+    </div>
+    <div class="trades-scroll">
+      <table class="ttbl">
+        <thead><tr><th>Price</th><th>Qty</th><th>Seq #</th></tr></thead>
+        <tbody id="tradesBody"><tr><td colspan="3" class="empty">No trades yet</td></tr></tbody>
+      </table>
+    </div>
+  </div>
 
-    function log(msg) {
-      const el = document.getElementById("log");
-      const ts = new Date().toLocaleTimeString();
-      el.textContent = `[${ts}] ${msg}\n` + el.textContent;
+  <!-- Full-width · My Orders -->
+  <div class="panel orders-panel">
+    <div class="ph">
+      <span class="ph-title">My Orders</span>
+      <span class="ph-badge" id="ordersCount">0</span>
+    </div>
+    <div class="o-scroll">
+      <table class="otbl">
+        <thead>
+          <tr>
+            <th>Order ID</th><th>Side</th><th>Type</th>
+            <th class="r">Qty</th><th class="r">Remaining</th>
+            <th class="r">Price</th><th>Status</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="ordersBody">
+          <tr><td colspan="8" class="empty">No orders yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Full-width · Log -->
+  <div class="panel log-panel">
+    <div class="ph"><span class="ph-title">Activity Log</span></div>
+    <div class="log-area" id="log"></div>
+  </div>
+
+</div>
+
+<script>
+  const API_BASE = "http://127.0.0.1:8000";
+  const WS_URL   = "ws://127.0.0.1:8000/stream";
+
+  let ws           = null;
+  let latestBook   = { bids: [], asks: [] };
+  let latestTrades = [];
+
+  // ── Chart state ──────────────────────────────────────────
+  let chart        = null;
+  let candleSeries = null;
+  let priceLine    = null;
+  let currentIv    = "1m";
+  let candleRefreshTimer = null;
+
+  // ── Formatting ───────────────────────────────────────────
+  const fmt  = c => c == null ? "—" : "$" + (c/100).toFixed(2);
+  const fmtD = d => "$" + d.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const esc  = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+  function badge(st) {
+    const m={NEW:"b-n",RESTING:"b-r",PARTIAL:"b-p",FILLED:"b-f",
+             CANCELED:"b-c",CANCELLED:"b-c",REJECTED:"b-rj"};
+    return `<span class="badge ${m[st]||'b-c'}">${st}</span>`;
+  }
+
+  // ── Logging ──────────────────────────────────────────────
+  function log(msg, type="") {
+    const el = document.getElementById("log");
+    const ts = new Date().toLocaleTimeString("en-US",{hour12:false});
+    const d  = document.createElement("div");
+    d.className = "ll";
+    d.innerHTML = `<span class="lt">${ts}</span><span class="lm ${type}">${esc(msg)}</span>`;
+    el.prepend(d);
+    if (el.children.length > 80) el.removeChild(el.lastChild);
+  }
+
+  // ── Side toggle ──────────────────────────────────────────
+  function setSide(side) {
+    document.getElementById("side").value = side;
+    const b   = document.getElementById("btnBuy");
+    const s   = document.getElementById("btnSell");
+    const btn = document.getElementById("submitBtn");
+    if (side==="BUY") {
+      b.className="side-btn buy-on"; s.className="side-btn";
+      btn.className="submit-btn buy"; btn.innerHTML="▲ &nbsp;Place Buy Order";
+    } else {
+      b.className="side-btn"; s.className="side-btn sell-on";
+      btn.className="submit-btn sell"; btn.innerHTML="▼ &nbsp;Place Sell Order";
     }
+    updateEst();
+  }
 
-    function formatPrice(cents) {
-      if (cents === null || cents === undefined) return "--";
-      return `$${(cents / 100).toFixed(2)}`;
+  function togglePriceField() {
+    document.getElementById("priceGroup").style.display =
+      document.getElementById("orderType").value==="LIMIT" ? "" : "none";
+    updateEst();
+  }
+
+  // ── Price helpers ─────────────────────────────────────────
+  function updatePriceHint() {
+    const v = parseFloat(document.getElementById("priceCents").value);
+    document.getElementById("priceHint").textContent =
+      isNaN(v) ? "" : "= $"+(v/100).toFixed(2);
+  }
+
+  function updateEst() {
+    const qty  = parseInt(document.getElementById("qty").value)||0;
+    const type = document.getElementById("orderType").value;
+    const side = document.getElementById("side").value;
+    const el   = document.getElementById("estTotal");
+    let price  = 0;
+    if (type==="LIMIT") price = parseInt(document.getElementById("priceCents").value)||0;
+    else { const lvl = side==="BUY" ? latestBook.asks[0] : latestBook.bids[0]; price = lvl?lvl[0]:0; }
+    if (qty>0 && price>0) {
+      el.textContent = fmtD((price*qty)/100);
+      el.style.color = side==="BUY" ? "var(--green)" : "var(--red)";
+    } else { el.textContent="—"; el.style.color="var(--t1)"; }
+  }
+
+  function fillPrice(which) {
+    const bid = latestBook.bids[0] ? latestBook.bids[0][0] : null;
+    const ask = latestBook.asks[0] ? latestBook.asks[0][0] : null;
+    const map = { bid, ask, mid: (bid&&ask) ? Math.round((bid+ask)/2) : null };
+    const p = map[which];
+    if (p!=null) {
+      document.getElementById("priceCents").value = p;
+      updatePriceHint(); updateEst();
+    } else log("No "+which+" price available","err");
+  }
+
+  function setQty(n) { document.getElementById("qty").value=n; updateEst(); }
+
+  function syncSymbol() {
+    const sym = document.getElementById("symbol").value.trim()||"AAPL";
+    ["headerSymbol","bookSymbolLabel","formBadge","chartSymbolBadge"].forEach(
+      id => document.getElementById(id).textContent = sym
+    );
+  }
+
+  // ══════════════════════════════════════════ CHART ══
+  function initChart() {
+    const container = document.getElementById("chartContainer");
+
+    chart = LightweightCharts.createChart(container, {
+      autoSize: true,
+      layout: {
+        background: { color: "#0c0c0c" },
+        textColor:  "#666",
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize:   10,
+      },
+      grid: {
+        vertLines: { color: "#181818" },
+        horzLines: { color: "#181818" },
+      },
+      crosshair: {
+        mode: LightweightCharts.CrosshairMode.Normal,
+        vertLine: { color: "#444", width: 1, style: 2, labelBackgroundColor: "#2c2c2c" },
+        horzLine: { color: "#444", width: 1, style: 2, labelBackgroundColor: "#2c2c2c" },
+      },
+      rightPriceScale: {
+        borderColor: "#252525",
+        scaleMargins: { top: 0.08, bottom: 0.08 },
+      },
+      timeScale: {
+        borderColor:     "#252525",
+        timeVisible:     true,
+        secondsVisible:  false,
+        fixLeftEdge:     false,
+        fixRightEdge:    false,
+      },
+      handleScale:  { mouseWheel: true, pinch: true },
+      handleScroll: { mouseWheel: true, pressedMouseMove: true },
+    });
+
+    candleSeries = chart.addCandlestickSeries({
+      upColor:         "#00d97e",
+      downColor:       "#f0394e",
+      borderUpColor:   "#00d97e",
+      borderDownColor: "#f0394e",
+      wickUpColor:     "#009e5a",
+      wickDownColor:   "#c42d3f",
+    });
+
+    // OHLC tooltip on crosshair move
+    chart.subscribeCrosshairMove(param => {
+      if (!param.time || !param.seriesData) return;
+      const c = param.seriesData.get(candleSeries);
+      if (!c) return;
+      document.getElementById("ohlcO").textContent = c.open.toFixed(2);
+      document.getElementById("ohlcH").textContent = c.high.toFixed(2);
+      document.getElementById("ohlcL").textContent = c.low.toFixed(2);
+      document.getElementById("ohlcC").textContent = c.close.toFixed(2);
+      const closeEl = document.getElementById("ohlcC");
+      closeEl.style.color = c.close >= c.open ? "var(--green)" : "var(--red)";
+    });
+  }
+
+  async function loadCandles() {
+    try {
+      const sym = document.getElementById("symbol").value.trim()||"AAPL";
+      const res = await fetch(`${API_BASE}/candles?symbol=${sym}&interval=${currentIv}&limit=200`);
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) return;
+      candleSeries.setData(data);
+      // Current price line at last close
+      const last = data[data.length-1];
+      if (priceLine) { try { candleSeries.removePriceLine(priceLine); } catch(_){} }
+      priceLine = candleSeries.createPriceLine({
+        price:              last.close,
+        color:              "#5b8ff9",
+        lineWidth:          1,
+        lineStyle:          LightweightCharts.LineStyle.Dashed,
+        axisLabelVisible:   true,
+        title:              "",
+      });
+      // Update OHLC bar with latest candle
+      document.getElementById("ohlcO").textContent = last.open.toFixed(2);
+      document.getElementById("ohlcH").textContent = last.high.toFixed(2);
+      document.getElementById("ohlcL").textContent = last.low.toFixed(2);
+      document.getElementById("ohlcC").textContent = last.close.toFixed(2);
+      document.getElementById("ohlcC").style.color =
+        last.close >= last.open ? "var(--green)" : "var(--red)";
+    } catch(e) { log("Candle load failed: "+e.message,"err"); }
+  }
+
+  function changeInterval(iv, btn) {
+    currentIv = iv;
+    document.querySelectorAll(".iv-btn").forEach(b => b.classList.remove("on"));
+    btn.classList.add("on");
+    loadCandles();
+  }
+
+  function fitChart() { if (chart) chart.timeScale().fitContent(); }
+
+  // Debounced candle refresh (at most once per 8s on trade events)
+  function scheduleCandles() {
+    clearTimeout(candleRefreshTimer);
+    candleRefreshTimer = setTimeout(loadCandles, 8000);
+  }
+
+  // ══════════════════════════════════════════ ORDER BOOK ══
+  function renderBook() {
+    const asks = [...latestBook.asks].reverse();
+    const bids = latestBook.bids;
+    const mxA  = asks.reduce((m,[,q])=>Math.max(m,q),1);
+    const mxB  = bids.reduce((m,[,q])=>Math.max(m,q),1);
+
+    const mkRows = (arr, maxQ, cls) => arr.length===0
+      ? `<tr><td colspan="3" class="empty">No ${cls==="a"?"asks":"bids"}</td></tr>`
+      : arr.map(([p,q])=>{
+          const pct = Math.round((q/maxQ)*100);
+          return `<tr><td style="position:relative">
+            <div class="df ${cls}" style="width:${pct}%"></div>
+            <span class="${cls==="a"?"ap":"bp"}">${fmt(p)}</span></td>
+            <td class="bq">${q.toLocaleString()}</td>
+            <td class="bt">${((p*q)/100).toLocaleString("en-US",{maximumFractionDigits:0})}</td></tr>`;
+        }).join("");
+
+    document.getElementById("asksBody").innerHTML = mkRows(asks, mxA, "a");
+    document.getElementById("bidsBody").innerHTML = mkRows(bids, mxB, "b");
+
+    const bestBid = bids[0]||null, bestAsk = latestBook.asks[0]||null;
+    const sb = document.getElementById("spreadBand");
+
+    if (bestBid && bestAsk) {
+      const sp = ((bestAsk[0]-bestBid[0])/100).toFixed(2);
+      sb.style.display="";
+      document.getElementById("spreadBandVal").textContent = `Spread  $${sp}`;
+      document.getElementById("spread").textContent  = "$"+sp;
+      document.getElementById("bestBid").textContent = fmt(bestBid[0]);
+      document.getElementById("bestAsk").textContent = fmt(bestAsk[0]);
+    } else {
+      sb.style.display="none";
+      if(bestBid) document.getElementById("bestBid").textContent=fmt(bestBid[0]);
+      if(bestAsk) document.getElementById("bestAsk").textContent=fmt(bestAsk[0]);
     }
+    document.getElementById("bookSymbolLabel").textContent =
+      document.getElementById("symbol").value.trim()||"AAPL";
+    updateEst();
+  }
 
-    function renderBook() {
-      const bidsBody = document.getElementById("bidsBody");
-      const asksBody = document.getElementById("asksBody");
-      bidsBody.innerHTML = "";
-      asksBody.innerHTML = "";
+  // ══════════════════════════════════════════ TRADES ══
+  function renderTrades() {
+    const tbody = document.getElementById("tradesBody");
+    if (!latestTrades.length) {
+      tbody.innerHTML=`<tr><td colspan="3" class="empty">No trades yet</td></tr>`;
+      document.getElementById("tradesCount").textContent="0"; return;
+    }
+    let prev=null; tbody.innerHTML="";
+    latestTrades.slice(0,40).forEach((t,i)=>{
+      const dir = prev==null?"":t.price_cents>prev?"▲":t.price_cents<prev?"▼":"=";
+      const col = prev==null?"var(--t1)":t.price_cents>prev?"var(--green)":t.price_cents<prev?"var(--red)":"var(--t2)";
+      prev=t.price_cents;
+      const tr=document.createElement("tr");
+      if(i===0) tr.classList.add("t-new");
+      tr.innerHTML=`<td style="color:${col};font-weight:600">${dir?`<span style="font-size:8px;margin-right:3px">${dir}</span>`:""}${fmt(t.price_cents)}</td>
+        <td class="tr-r">${t.qty.toLocaleString()}</td><td class="tr-d">${t.seq}</td>`;
+      tbody.appendChild(tr);
+    });
+    document.getElementById("tradesCount").textContent=latestTrades.length;
+    if(latestTrades[0]) document.getElementById("lastTrade").textContent=fmt(latestTrades[0].price_cents);
+  }
 
-      latestBook.bids.forEach(([price, qty]) => {
-        const row = `<tr><td class="green">${formatPrice(price)}</td><td>${qty}</td></tr>`;
-        bidsBody.innerHTML += row;
-      });
+  // ══════════════════════════════════════════ P&L ══
+  async function loadPnl() {
+    const uid=document.getElementById("userId").value.trim();
+    if(!uid) return;
+    document.getElementById("pnlUser").textContent=uid;
+    try {
+      const d=await (await fetch(`${API_BASE}/pnl?user_id=${encodeURIComponent(uid)}`)).json();
+      const net=d.pnl||0;
+      document.getElementById("pnlBuy").textContent  = fmtD(d.total_buy||0);
+      document.getElementById("pnlSell").textContent = fmtD(d.total_sell||0);
+      const el=document.getElementById("pnlNet");
+      el.textContent=(net>=0?"+":"")+fmtD(net);
+      el.style.color=net>0?"var(--green)":net<0?"var(--red)":"var(--t1)";
+    } catch(e){ log("P&L error: "+e.message,"err"); }
+  }
 
-      latestBook.asks.forEach(([price, qty]) => {
-        const row = `<tr><td class="red">${formatPrice(price)}</td><td>${qty}</td></tr>`;
-        asksBody.innerHTML += row;
-      });
-
-      const bestBid = latestBook.bids[0] || null;
-      const bestAsk = latestBook.asks[0] || null;
-
-      document.getElementById("bestBid").textContent = bestBid ? formatPrice(bestBid[0]) : "--";
-      document.getElementById("bestAsk").textContent = bestAsk ? formatPrice(bestAsk[0]) : "--";
-
-      if (bestBid && bestAsk) {
-        document.getElementById("spread").textContent = `$${((bestAsk[0] - bestBid[0]) / 100).toFixed(2)}`;
-      } else {
-        document.getElementById("spread").textContent = "--";
+  // ══════════════════════════════════════════ ORDERS ══
+  async function loadOrders() {
+    const uid=document.getElementById("userId").value.trim(); if(!uid) return;
+    try {
+      const d=await(await fetch(`${API_BASE}/orders?user_id=${encodeURIComponent(uid)}&limit=50`)).json();
+      const orders=d.orders||[];
+      const tbody=document.getElementById("ordersBody");
+      if(!orders.length){
+        tbody.innerHTML=`<tr><td colspan="8" class="empty">No orders for ${esc(uid)}</td></tr>`;
+        document.getElementById("ordersCount").textContent="0"; return;
       }
-    }
+      tbody.innerHTML=orders.map(o=>`<tr>
+        <td style="color:var(--t2)">${o.order_id.slice(0,8)}…</td>
+        <td><span class="${o.side==="BUY"?"buy-t":"sell-t"}">${o.side}</span></td>
+        <td style="color:var(--t2)">${o.type}</td>
+        <td class="r">${o.qty.toLocaleString()}</td>
+        <td class="r">${o.remaining_qty.toLocaleString()}</td>
+        <td class="r">${o.price_cents?fmt(o.price_cents):'<span style="color:var(--t2)">MKT</span>'}</td>
+        <td>${badge(o.status)}</td>
+        <td><button class="xbtn" onclick="cancelOrder('${o.order_id}')">✕</button></td>
+      </tr>`).join("");
+      document.getElementById("ordersCount").textContent=orders.length;
+    } catch(e){ log("Orders error: "+e.message,"err"); }
+  }
 
-    function renderTrades() {
-      const tbody = document.getElementById("tradesBody");
-      tbody.innerHTML = "";
-      latestTrades.slice(0, 25).forEach(t => {
-        tbody.innerHTML += `
-          <tr>
-            <td>${formatPrice(t.price_cents)}</td>
-            <td>${t.qty}</td>
-            <td>${t.seq}</td>
-          </tr>
-        `;
-      });
-    }
-
-    async function loadSnapshot() {
-      const res = await fetch(`${API_BASE}/book/snapshot?depth=10`);
-      const data = await res.json();
-      latestBook = {
-        bids: data.bids || [],
-        asks: data.asks || []
-      };
-      renderBook();
-      log("Loaded initial order book snapshot");
-    }
-
-    async function loadTrades() {
-      const res = await fetch(`${API_BASE}/trades?limit=25`);
-      const data = await res.json();
-      latestTrades = data.trades || [];
-      renderTrades();
-    }
-
-    async function loadOrders() {
-      const userId = document.getElementById("userId").value.trim();
-      const res = await fetch(`${API_BASE}/orders?user_id=${encodeURIComponent(userId)}&limit=50`);
-      const data = await res.json();
-
-      const tbody = document.getElementById("ordersBody");
-      tbody.innerHTML = "";
-
-      (data.orders || []).forEach(order => {
-        tbody.innerHTML += `
-          <tr>
-            <td>${order.order_id}</td>
-            <td>${order.side}</td>
-            <td>${order.type}</td>
-            <td>${order.qty}</td>
-            <td>${order.remaining_qty}</td>
-            <td>${order.price_cents ? formatPrice(order.price_cents) : "MKT"}</td>
-            <td>${order.status}</td>
-            <td>
-              <button onclick="cancelOrder('${order.order_id}')">Cancel</button>
-            </td>
-          </tr>
-        `;
-      });
-    }
-
-    async function placeOrder() {
-      const user_id = document.getElementById("userId").value.trim();
-      const symbol = document.getElementById("symbol").value.trim();
-      const side = document.getElementById("side").value;
-      const type = document.getElementById("orderType").value;
-      const qty = parseInt(document.getElementById("qty").value, 10);
-      const price_cents_raw = document.getElementById("priceCents").value.trim();
-      const client_order_id = document.getElementById("clientOrderId").value.trim();
-
-      const payload = {
-        user_id,
-        symbol,
-        side,
-        type,
-        qty
-      };
-
-      if (client_order_id) payload.client_order_id = client_order_id;
-      if (type === "LIMIT") payload.price_cents = parseInt(price_cents_raw, 10);
-
-      const res = await fetch(`${API_BASE}/orders`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-      log("Placed order: " + JSON.stringify(data));
+  async function cancelAllOrders() {
+    const uid=document.getElementById("userId").value.trim();
+    if(!uid){ log("Set a User ID first","err"); return; }
+    try {
+      const d=await(await fetch(`${API_BASE}/orders?user_id=${encodeURIComponent(uid)}&limit=50`)).json();
+      const active=(d.orders||[]).filter(o=>["NEW","RESTING","PARTIAL"].includes(o.status));
+      if(!active.length){ log("No active orders"); return; }
+      await Promise.all(active.map(o=>fetch(`${API_BASE}/orders/${o.order_id}`,{method:"DELETE"})));
+      log(`Cancelled ${active.length} order${active.length>1?"s":""}`, "ok");
       await loadOrders();
+    } catch(e){ log("Cancel all failed: "+e.message,"err"); }
+  }
+
+  // ══════════════════════════════════════════ PLACE / CANCEL ══
+  async function placeOrder() {
+    const user_id=document.getElementById("userId").value.trim();
+    const symbol =document.getElementById("symbol").value.trim();
+    const side   =document.getElementById("side").value;
+    const type   =document.getElementById("orderType").value;
+    const qty    =parseInt(document.getElementById("qty").value,10);
+    const pc_raw =document.getElementById("priceCents").value.trim();
+    const coid   =document.getElementById("clientOrderId").value.trim();
+    if(!user_id||!symbol||!qty){ log("Missing required fields","err"); return; }
+    const p={user_id,symbol,side,type,qty};
+    if(coid) p.client_order_id=coid;
+    if(type==="LIMIT") p.price_cents=parseInt(pc_raw,10);
+    try {
+      const d=await(await fetch(`${API_BASE}/orders`,{
+        method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)
+      })).json();
+      log(`Order placed — seq ${d.seq}  id ${d.order_id?d.order_id.slice(0,8):"?"}…`,"ok");
+      await loadOrders(); loadPnl();
+    } catch(e){ log("Order failed: "+e.message,"err"); }
+  }
+
+  async function cancelOrder(oid) {
+    try {
+      await fetch(`${API_BASE}/orders/${oid}`,{method:"DELETE"});
+      log(`Cancelled ${oid.slice(0,8)}…`);
+      await loadOrders(); loadPnl();
+    } catch(e){ log("Cancel failed: "+e.message,"err"); }
+  }
+
+  // ══════════════════════════════════════════ REST ══
+  async function loadSnapshot() {
+    try {
+      const d=await(await fetch(`${API_BASE}/book/snapshot?depth=10`)).json();
+      latestBook={bids:d.bids||[],asks:d.asks||[]}; renderBook();
+      log("Book snapshot loaded","ok");
+    } catch(e){ log("Book error: "+e.message,"err"); }
+  }
+  async function loadTrades() {
+    try {
+      const d=await(await fetch(`${API_BASE}/trades?limit=40`)).json();
+      latestTrades=d.trades||[]; renderTrades();
+    } catch(e){ log("Trades error: "+e.message,"err"); }
+  }
+
+  // ══════════════════════════════════════════ WEBSOCKET ══
+  function connectWS() {
+    ws=new WebSocket(WS_URL);
+
+    ws.onopen=async()=>{
+      document.getElementById("connPill").classList.add("live");
+      document.getElementById("connectionState").textContent="Live";
+      log("WebSocket connected","ws");
+      const sym=document.getElementById("symbol").value.trim();
+      const uid=document.getElementById("userId").value.trim();
+      ws.send(JSON.stringify({action:"subscribe",channels:["l1","book","trades"],symbol:sym}));
+      ws.send(JSON.stringify({action:"subscribe",channels:["orders"],symbol:sym,user_id:uid}));
+      await loadSnapshot(); await loadTrades(); await loadOrders();
+      await loadCandles(); loadPnl();
+    };
+
+    ws.onmessage=({data})=>{
+      const msg=JSON.parse(data);
+      if(msg.type==="BookSnapshot"){
+        latestBook={bids:msg.bids||[],asks:msg.asks||[]}; renderBook();
+      } else if(msg.type==="BookL1"){
+        if(msg.best_bid) latestBook.bids.length?(latestBook.bids[0]=msg.best_bid):(latestBook.bids=[msg.best_bid]);
+        if(msg.best_ask) latestBook.asks.length?(latestBook.asks[0]=msg.best_ask):(latestBook.asks=[msg.best_ask]);
+        renderBook();
+      } else if(msg.type==="TradeExecuted"){
+        latestTrades.unshift(msg);
+        if(latestTrades.length>200) latestTrades.length=200;
+        renderTrades();
+        log(`Trade  ${fmt(msg.price_cents)} × ${msg.qty}`,"ws");
+        scheduleCandles();   // refresh candles after trade (debounced 8s)
+      } else if(msg.type==="OrderUpdate"||msg.type==="OrderAccepted"){
+        loadOrders(); loadPnl();
+      }
+    };
+
+    ws.onclose=()=>{
+      document.getElementById("connPill").classList.remove("live");
+      document.getElementById("connectionState").textContent="Disconnected";
+      log("WebSocket disconnected — retrying in 3 s","err");
+      setTimeout(connectWS,3000);
+    };
+    ws.onerror=()=>log("WebSocket error","err");
+  }
+
+  // ── Enter key to submit ──────────────────────────────────
+  document.addEventListener("keydown",e=>{
+    if(e.key==="Enter"&&document.activeElement.classList.contains("ctrl")){
+      e.preventDefault(); placeOrder();
     }
+  });
 
-    async function cancelOrder(orderId) {
-      const res = await fetch(`${API_BASE}/orders/${orderId}`, {
-        method: "DELETE"
-      });
-      const data = await res.json();
-      log("Cancel result: " + JSON.stringify(data));
-      await loadOrders();
-    }
-
-    function connectWS() {
-      ws = new WebSocket(WS_URL);
-
-      ws.onopen = async () => {
-        document.getElementById("connectionState").textContent = "Connected";
-        log("WebSocket connected");
-
-        const symbol = document.getElementById("symbol").value.trim();
-        const userId = document.getElementById("userId").value.trim();
-
-        ws.send(JSON.stringify({
-          action: "subscribe",
-          channels: ["l1", "book", "trades"],
-          symbol
-        }));
-
-        ws.send(JSON.stringify({
-          action: "subscribe",
-          channels: ["orders"],
-          symbol,
-          user_id: userId
-        }));
-
-        await loadSnapshot();
-        await loadTrades();
-        await loadOrders();
-      };
-
-      ws.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        log("WS Event: " + msg.type);
-
-        if (msg.type === "BookSnapshot") {
-          latestBook = {
-            bids: msg.bids || [],
-            asks: msg.asks || []
-          };
-          renderBook();
-        } else if (msg.type === "BookL1") {
-          if (msg.best_bid) {
-            if (latestBook.bids.length > 0) latestBook.bids[0] = msg.best_bid;
-            else latestBook.bids = [msg.best_bid];
-          }
-          if (msg.best_ask) {
-            if (latestBook.asks.length > 0) latestBook.asks[0] = msg.best_ask;
-            else latestBook.asks = [msg.best_ask];
-          }
-          renderBook();
-        } else if (msg.type === "TradeExecuted") {
-          latestTrades.unshift(msg);
-          renderTrades();
-        } else if (msg.type === "OrderUpdate" || msg.type === "OrderAccepted") {
-          loadOrders();
-        }
-      };
-
-      ws.onclose = () => {
-        document.getElementById("connectionState").textContent = "Disconnected";
-        log("WebSocket disconnected");
-      };
-
-      ws.onerror = () => {
-        log("WebSocket error");
-      };
-    }
-
-    connectWS();
-  </script>
+  // ── Init ──────────────────────────────────────────────────
+  initChart();
+  togglePriceField();
+  updatePriceHint();
+  connectWS();
+</script>
 </body>
 </html>

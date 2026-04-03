@@ -113,9 +113,9 @@ const TopBar = ({ appName = "Trading Exchange", profileName = "T", onMenuClick }
       position="static"
       elevation={0}
       sx={{
-        background: "rgba(17, 24, 39, 0.92)",
-        backdropFilter: "blur(12px)",
-        borderBottom: "1px solid rgba(255,255,255,0.08)",
+        background: "rgba(8,10,20,0.97)",
+        backdropFilter: "blur(16px)",
+        borderBottom: "1px solid rgba(99,102,241,0.18)",
         px: { xs: 1, sm: 2, md: 3 },
       }}
     >
@@ -170,8 +170,9 @@ const TopBar = ({ appName = "Trading Exchange", profileName = "T", onMenuClick }
               px: 2,
               py: 1,
               borderRadius: "14px",
-              backgroundColor: "rgba(255,255,255,0.06)",
-              color: "#fff",
+              backgroundColor: "rgba(99,102,241,0.08)",
+              border: "1px solid rgba(99,102,241,0.15)",
+              color: "#c7d2fe",
             }}
           >
             <AccessTimeIcon fontSize="small" />
@@ -189,8 +190,9 @@ const TopBar = ({ appName = "Trading Exchange", profileName = "T", onMenuClick }
               px: 2,
               py: 1,
               borderRadius: "14px",
-              backgroundColor: "rgba(255,255,255,0.06)",
-              color: "#fff",
+              backgroundColor: "rgba(99,102,241,0.08)",
+              border: "1px solid rgba(99,102,241,0.15)",
+              color: "#c7d2fe",
             }}
           >
             <CloudOutlinedIcon fontSize="small" />
@@ -213,7 +215,7 @@ const TopBar = ({ appName = "Trading Exchange", profileName = "T", onMenuClick }
             sx={{
               width: 42,
               height: 42,
-              bgcolor: "#2563eb",
+              bgcolor: "#6366f1",
               fontWeight: 700,
               cursor: "pointer",
             }}

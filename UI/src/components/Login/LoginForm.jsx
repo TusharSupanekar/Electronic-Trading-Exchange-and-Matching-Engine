@@ -283,20 +283,17 @@ export default function LoginForm() {
 
                 <Typography sx={{ textAlign: "center", color: "#64748B", fontSize: "14px" }}>
                   Don&apos;t have an account?{" "}
-                  <Typography sx={{ textAlign: "center", color: "#64748B", fontSize: "14px" }}>
-                    Don&apos;t have an account?{" "}
-                    <Box
-                      component="span"
-                      onClick={() => setOpenRegister(true)}
-                      sx={{
-                        fontWeight: 700,
-                        color: "#1976d2",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Create account
-                    </Box>
-                  </Typography>
+                  <Box
+                    component="span"
+                    onClick={() => setOpenRegister(true)}
+                    sx={{
+                      fontWeight: 700,
+                      color: "#1976d2",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Create account
+                  </Box>
                 </Typography>
               </Stack>
             </Box>

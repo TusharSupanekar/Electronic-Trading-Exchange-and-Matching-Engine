@@ -1,74 +1,129 @@
-import React, { useEffect, useRef } from "react";
-import { createChart, CandlestickSeries } from "lightweight-charts";
+import { useEffect, useRef } from "react";
+import { createChart, CandlestickSeries, LineSeries, AreaSeries } from "lightweight-charts";
 
-const CandleChart = ({ data }) => {
+const CHART_OPTIONS = {
+  autoSize: true,
+  layout: {
+    background: { color: "#0c1628" },
+    textColor: "#9ca3af",
+    fontFamily: "Inter, monospace",
+    fontSize: 11,
+  },
+  grid: {
+    vertLines: { color: "rgba(255,255,255,0.04)" },
+    horzLines: { color: "rgba(255,255,255,0.04)" },
+  },
+  crosshair: {
+    vertLine: { color: "rgba(255,255,255,0.3)", labelBackgroundColor: "#2a2a2a" },
+    horzLine: { color: "rgba(255,255,255,0.3)", labelBackgroundColor: "#2a2a2a" },
+  },
+  rightPriceScale: {
+    borderColor: "rgba(255,255,255,0.07)",
+    scaleMargins: { top: 0.1, bottom: 0.1 },
+  },
+  timeScale: {
+    borderColor: "rgba(255,255,255,0.07)",
+    timeVisible: true,
+    secondsVisible: false,
+    fixLeftEdge: false,
+    fixRightEdge: false,
+    barSpacing: 10,
+    minBarSpacing: 4,
+  },
+};
+
+const CandleChart = ({ data = [], type = "candle" }) => {
+  const containerRef = useRef(null);
   const chartRef = useRef(null);
-  const chartInstanceRef = useRef(null);
-  const candleSeriesRef = useRef(null);
+  const seriesRef = useRef(null);
 
+  // recreate series when type changes
   useEffect(() => {
-    if (!chartRef.current) return;
+    if (!containerRef.current) return;
 
-    const chart = createChart(chartRef.current, {
-      width: chartRef.current.clientWidth,
-      height: 420,
-      layout: {
-        background: { color: "#020617" },
-        textColor: "#cbd5e1",
-      },
-      grid: {
-        vertLines: { color: "rgba(255,255,255,0.05)" },
-        horzLines: { color: "rgba(255,255,255,0.05)" },
-      },
-      rightPriceScale: {
-        borderColor: "rgba(255,255,255,0.12)",
-      },
-      timeScale: {
-        borderColor: "rgba(255,255,255,0.12)",
-        timeVisible: true,
-        secondsVisible: false,
-      },
-    });
+    // first mount: create the chart
+    if (!chartRef.current) {
+      chartRef.current = createChart(containerRef.current, CHART_OPTIONS);
+    }
 
-    const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#22c55e",
-      downColor: "#ef4444",
-      borderUpColor: "#22c55e",
-      borderDownColor: "#ef4444",
-      wickUpColor: "#22c55e",
-      wickDownColor: "#ef4444",
-    });
+    const chart = chartRef.current;
 
-    chartInstanceRef.current = chart;
-    candleSeriesRef.current = candleSeries;
+    // remove existing series
+    if (seriesRef.current) {
+      chart.removeSeries(seriesRef.current);
+      seriesRef.current = null;
+    }
 
-    candleSeries.setData(data);
-    
+    // add the right series type
+    if (type === "candle") {
+      seriesRef.current = chart.addSeries(CandlestickSeries, {
+        upColor: "#22c55e",
+        downColor: "#ef4444",
+        borderUpColor: "#16a34a",
+        borderDownColor: "#dc2626",
+        wickUpColor: "#22c55e",
+        wickDownColor: "#ef4444",
+      });
+    } else if (type === "line") {
+      seriesRef.current = chart.addSeries(LineSeries, {
+        color: "#38bdf8",
+        lineWidth: 2,
+        crosshairMarkerVisible: true,
+        crosshairMarkerRadius: 4,
+        crosshairMarkerBackgroundColor: "#38bdf8",
+      });
+    } else if (type === "area") {
+      seriesRef.current = chart.addSeries(AreaSeries, {
+        lineColor: "#38bdf8",
+        topColor: "rgba(56,189,248,0.25)",
+        bottomColor: "rgba(56,189,248,0.02)",
+        lineWidth: 2,
+      });
+    }
 
-    const handleResize = () => {
-      if (chartRef.current && chartInstanceRef.current) {
-        chartInstanceRef.current.applyOptions({
-          width: chartRef.current.clientWidth,
-        });
+    // set data if already available
+    if (data.length && seriesRef.current) {
+      seriesRef.current.setData(formatData(type, data));
+      if (type === "candle") {
+        chart.timeScale().scrollToRealTime();
+      } else {
+        chart.timeScale().fitContent();
       }
-    };
-
-    window.addEventListener("resize", handleResize);
+    }
 
     return () => {
-      window.removeEventListener("resize", handleResize);
-      chart.remove();
+      // only destroy on unmount (when containerRef becomes null)
+    };
+  }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // destroy chart on unmount
+  useEffect(() => {
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.remove();
+        chartRef.current = null;
+        seriesRef.current = null;
+      }
     };
   }, []);
 
+  // update data
   useEffect(() => {
-    if (candleSeriesRef.current) {
-      candleSeriesRef.current.setData(data);
-      
+    if (!seriesRef.current || !data.length) return;
+    seriesRef.current.setData(formatData(type, data));
+    if (type === "candle") {
+      chartRef.current?.timeScale().scrollToRealTime();
+    } else {
+      chartRef.current?.timeScale().fitContent();
     }
-  }, [data]);
+  }, [data, type]);
 
-  return <div ref={chartRef} style={{ width: "100%" }} />;
+  return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
+};
+
+const formatData = (type, data) => {
+  if (type === "candle") return data;
+  return data.map((d) => ({ time: d.time, value: d.close }));
 };
 
 export default CandleChart;

@@ -1,5 +1,5 @@
 import json
-from docker.db import get_connection
+from docker.db import get_connection, put_connection
 
 
 def insert_order(order):
@@ -29,7 +29,7 @@ def insert_order(order):
 
     conn.commit()
     cur.close()
-    conn.close()
+    put_connection(conn)
 
 
 def update_order(order):
@@ -51,7 +51,7 @@ def update_order(order):
 
     conn.commit()
     cur.close()
-    conn.close()
+    put_connection(conn)
 
 
 def insert_trade(trade):
@@ -76,7 +76,7 @@ def insert_trade(trade):
 
     conn.commit()
     cur.close()
-    conn.close()
+    put_connection(conn)
 
 
 def insert_command(seq, command_type, payload, created_ms):
@@ -95,7 +95,7 @@ def insert_command(seq, command_type, payload, created_ms):
 
     conn.commit()
     cur.close()
-    conn.close()
+    put_connection(conn)
 
 
 def get_all_commands():
@@ -110,7 +110,7 @@ def get_all_commands():
 
     rows = cur.fetchall()
     cur.close()
-    conn.close()
+    put_connection(conn)
 
     commands = []
     for seq, command_type, payload_json, created_ms in rows:
@@ -137,7 +137,7 @@ def create_user(username,email,password):
     user_id = cur.fetchone()[0]
     conn.commit()
     cur.close()
-    conn.close()
+    put_connection(conn)
     return user_id
 
 def get_user_by_email(email):
@@ -153,6 +153,6 @@ def get_user_by_email(email):
     user = cur.fetchone()
 
     cur.close()
-    conn.close()
+    put_connection(conn)
 
     return user

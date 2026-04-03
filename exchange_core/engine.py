@@ -126,11 +126,12 @@ class MatchingEngineService:
         self.is_replaying = False
 
     async def _handle_new_order(self, cmd: Command) -> None:
+        loop = asyncio.get_event_loop()
         order: Order = cmd.payload["order"]
         self.orders[order.order_id] = order
 
         if not self.is_replaying:
-            insert_order(order)
+            await loop.run_in_executor(None, insert_order, order)
 
         if not self.is_replaying:
             await self.event_queue.put({
@@ -145,7 +146,7 @@ class MatchingEngineService:
         trades = match_order(self.book, order)
 
         if not self.is_replaying:
-            update_order(order)
+            await loop.run_in_executor(None, update_order, order)
 
         if not self.is_replaying:
             await self.event_queue.put({
@@ -161,7 +162,7 @@ class MatchingEngineService:
 
         for t in trades:
             if not self.is_replaying:
-                insert_trade(t)
+                await loop.run_in_executor(None, insert_trade, t)
 
             trade_event = {
                 "type": "TradeExecuted",
@@ -181,7 +182,7 @@ class MatchingEngineService:
 
             maker = self.orders.get(t.maker_order_id)
             if maker and not self.is_replaying:
-                update_order(maker)
+                await loop.run_in_executor(None, update_order, maker)
                 await self.event_queue.put({
                     "type": "OrderUpdate",
                     "seq": cmd.seq,
@@ -195,7 +196,7 @@ class MatchingEngineService:
 
             taker = self.orders.get(t.taker_order_id)
             if taker and not self.is_replaying:
-                update_order(taker)
+                await loop.run_in_executor(None, update_order, taker)
                 await self.event_queue.put({
                     "type": "OrderUpdate",
                     "seq": cmd.seq,
@@ -212,6 +213,7 @@ class MatchingEngineService:
             await self.event_queue.put(self._book_snapshot_event(cmd.seq))
 
     async def _handle_cancel_order(self, cmd: Command) -> None:
+        loop = asyncio.get_event_loop()
         order_id = cmd.payload["order_id"]
         order = self.orders.get(order_id)
 
@@ -220,7 +222,7 @@ class MatchingEngineService:
         if ok:
             status = "CANCELED"
             if order and not self.is_replaying:
-                update_order(order)
+                await loop.run_in_executor(None, update_order, order)
             user_id = order.user_id if order else None
             symbol = order.symbol if order else self.book.symbol
         else:

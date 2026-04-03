@@ -14,9 +14,11 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.9",
     "@mui/material": "^7.3.9",
+    "apexcharts": "^5.10.4",
     "axios": "^1.13.6",
     "lightweight-charts": "^5.1.0",
     "react": "^19.2.4",
+    "react-apexcharts": "^2.1.0",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.13.1"
   },

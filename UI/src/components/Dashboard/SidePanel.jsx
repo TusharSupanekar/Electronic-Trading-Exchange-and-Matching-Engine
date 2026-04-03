@@ -62,8 +62,8 @@ const SidePanel = ({ selected = "Dashboard", onSelect }) => {
         width: { xs: "100%", md: 280 },
         minHeight: "calc(100vh - 73px)",
         height: "100%",
-        background: "linear-gradient(135deg, #07111F 0%, #0B1F36 60%, #102A43 100%)",
-        borderRight: "1px solid rgba(255,255,255,0.08)",
+        background: "linear-gradient(180deg, #0c1021 0%, #090d1a 100%)",
+        borderRight: "1px solid rgba(99,102,241,0.15)",
         display: "flex",
         flexDirection: "column",
         color: "#fff",
@@ -72,7 +72,7 @@ const SidePanel = ({ selected = "Dashboard", onSelect }) => {
       <Box sx={{ px: 3, py: 3 }}>
         <Typography
           variant="overline"
-          sx={{ color: "rgba(255,255,255,0.5)", letterSpacing: 1.5 }}
+          sx={{ color: "rgba(99,102,241,0.7)", letterSpacing: 1.5 }}
         >
           MAIN MENU
         </Typography>
@@ -89,32 +89,39 @@ const SidePanel = ({ selected = "Dashboard", onSelect }) => {
               color: "#fff",
               backgroundColor:
                 selected === item.label
-                  ? "rgba(37,99,235,0.18)"
+                  ? "rgba(99,102,241,0.18)"
                   : "transparent",
+              borderLeft: selected === item.label
+                ? "3px solid #6366f1"
+                : "3px solid transparent",
               "&:hover": {
                 backgroundColor:
                   selected === item.label
-                    ? "rgba(37,99,235,0.22)"
-                    : "rgba(255,255,255,0.06)",
+                    ? "rgba(99,102,241,0.22)"
+                    : "rgba(99,102,241,0.07)",
               },
             }}
           >
-            <ListItemIcon sx={{ color: "#fff", minWidth: 40 }}>
+            <ListItemIcon sx={{
+              color: selected === item.label ? "#818cf8" : "rgba(255,255,255,0.5)",
+              minWidth: 40,
+            }}>
               {item.icon}
             </ListItemIcon>
 
             <ListItemText
               primary={item.label}
               primaryTypographyProps={{
-                fontSize: 16,
-                fontWeight: selected === item.label ? 600 : 500,
+                fontSize: 15,
+                fontWeight: selected === item.label ? 700 : 400,
+                color: selected === item.label ? "#e0e7ff" : "rgba(255,255,255,0.6)",
               }}
             />
           </ListItemButton>
         ))}
       </List>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.08)", mt: "auto" }} />
+      <Divider sx={{ borderColor: "rgba(99,102,241,0.12)", mt: "auto" }} />
 
       <List sx={{ px: 1, pb: 2 }}>
         <ListItemButton

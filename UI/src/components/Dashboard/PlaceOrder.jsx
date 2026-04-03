@@ -299,11 +299,10 @@ const PlaceOrder = () => {
         scroll="paper"
         PaperProps={{
             sx: {
-            background:
-                "linear-gradient(135deg, rgba(15,23,42,0.98) 0%, rgba(30,41,59,0.96) 100%)",
+            background: "#111829",
             color: "#fff",
             borderRadius: fullScreen ? 0 : "14px",
-            border: "1px solid rgba(255,255,255,0.08)",
+            border: "1px solid rgba(99,102,241,0.18)",
             width: "100%",
             maxHeight: fullScreen ? "100dvh" : "90vh",
             overflow: "hidden",
@@ -395,16 +394,52 @@ const PlaceOrder = () => {
             margin="dense"
           />
 
+          {/* Qty presets */}
+          <Box sx={{ display: 'flex', gap: 0.8, mt: 0.5, mb: 0.5 }}>
+            {[1, 5, 10, 50, 100].map(n => (
+              <Button key={n} size="small" onClick={() => setQty(n)}
+                sx={{ flex: 1, minWidth: 0, py: 0.4, border: '1px solid rgba(255,255,255,0.1)',
+                  color: '#888', fontSize: 11, textTransform: 'none', borderRadius: '8px',
+                  '&:hover': { border: '1px solid rgba(255,255,255,0.25)', color: '#fff', background: 'rgba(255,255,255,0.05)' }
+                }}>
+                {n}
+              </Button>
+            ))}
+          </Box>
+
           {type === "LIMIT" && (
-            <TextField
-              label="Price"
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              fullWidth
-              sx={fieldSx}
-              margin="dense"
-            />
+            <>
+              <TextField
+                label="Price"
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                fullWidth
+                sx={fieldSx}
+                margin="dense"
+              />
+              {/* Quick price fill */}
+              <Box sx={{ display: 'flex', gap: 0.8, mt: 0.5, mb: 0.5 }}>
+                <Button size="small" onClick={() => setPrice(bestBid.toFixed(2))} disabled={!bestBid}
+                  sx={{ flex: 1, py: 0.4, border: '1px solid rgba(34,197,94,0.3)', color: '#22c55e',
+                    fontSize: 11, textTransform: 'none', borderRadius: '8px',
+                    '&:hover': { background: 'rgba(34,197,94,0.08)' } }}>
+                  Bid ${bestBid ? bestBid.toFixed(2) : '--'}
+                </Button>
+                <Button size="small" onClick={() => bestBid && bestAsk && setPrice(((bestBid + bestAsk) / 2).toFixed(2))} disabled={!bestBid || !bestAsk}
+                  sx={{ flex: 1, py: 0.4, border: '1px solid rgba(245,165,32,0.3)', color: '#f5a520',
+                    fontSize: 11, textTransform: 'none', borderRadius: '8px',
+                    '&:hover': { background: 'rgba(245,165,32,0.08)' } }}>
+                  Mid
+                </Button>
+                <Button size="small" onClick={() => setPrice(bestAsk.toFixed(2))} disabled={!bestAsk}
+                  sx={{ flex: 1, py: 0.4, border: '1px solid rgba(240,57,78,0.3)', color: '#ef4444',
+                    fontSize: 11, textTransform: 'none', borderRadius: '8px',
+                    '&:hover': { background: 'rgba(240,57,78,0.08)' } }}>
+                  Ask ${bestAsk ? bestAsk.toFixed(2) : '--'}
+                </Button>
+              </Box>
+            </>
           )}
 
           <Box sx={{ mt: 2.5, mb: 2 }}>
@@ -444,9 +479,8 @@ const PlaceOrder = () => {
 const cardStyle = {
   p: 2,
   borderRadius: "8px",
-  background:
-    "linear-gradient(135deg, rgba(15,23,42,0.95) 0%, rgba(30,41,59,0.92) 100%)",
-  border: "1px solid rgba(255,255,255,0.08)",
+  background: "#0f1728",
+  border: "1px solid rgba(99,102,241,0.18)",
   color: "#fff",
   boxShadow: "none",
 };

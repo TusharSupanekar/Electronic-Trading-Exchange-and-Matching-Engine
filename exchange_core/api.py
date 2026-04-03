@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from docker import repository 
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from docker.db import get_connection
+from docker.db import get_connection, put_connection
 
 from engine import Sequencer, MatchingEngineService, Command
 from publisher import WebSocketPublisher, event_fanout_loop
@@ -107,7 +107,8 @@ async def create_order(req: CreateOrderRequest):
         "created_ms": order.created_ms
     }
 
-    insert_command(seq, "NEW_ORDER", payload, order.created_ms)
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, lambda: insert_command(seq, "NEW_ORDER", payload, order.created_ms))
 
     cmd = Command(seq=seq, type="NEW_ORDER", payload={"order": order})
     await engine.submit(cmd)
@@ -131,7 +132,9 @@ async def cancel_order(order_id: str):
         "order_id": order_id
     }
 
-    insert_command(seq, "CANCEL_ORDER", payload, now_ms())
+    ts = now_ms()
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, lambda: insert_command(seq, "CANCEL_ORDER", payload, ts))
 
     cmd = Command(seq=seq, type="CANCEL_ORDER", payload={"order_id": order_id})
     await engine.submit(cmd)
@@ -364,14 +367,8 @@ def get_candles(
     interval: str = Query("1m"),
     limit: int = Query(100)
 ):
-    if interval == "1m":
-        bucket_size = 60000
-    elif interval == "5m":
-        bucket_size = 300000
-    elif interval == "15m":
-        bucket_size = 900000
-    else:
-        bucket_size = 60000
+    bucket_map = {"1m": 60000, "5m": 300000, "15m": 900000, "30m": 1800000, "1h": 3600000}
+    bucket_size = bucket_map.get(interval, 60000)
 
     conn = get_connection()
     cur = conn.cursor()
@@ -437,7 +434,7 @@ def get_candles(
     rows = cur.fetchall()
 
     cur.close()
-    conn.close()
+    put_connection(conn)
 
     rows.reverse()
 
