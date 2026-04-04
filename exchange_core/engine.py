@@ -12,6 +12,8 @@ from docker.repository import (
     update_order,
     insert_trade,
     get_all_commands,
+    update_holding_after_buy,
+    update_holding_after_sell,
 )
 
 
@@ -164,6 +166,34 @@ class MatchingEngineService:
             if not self.is_replaying:
                 await loop.run_in_executor(None, insert_trade, t)
 
+            maker = self.orders.get(t.maker_order_id)
+            taker = self.orders.get(t.taker_order_id)
+
+            if maker and taker and not self.is_replaying:
+                if maker.side.value == "BUY":
+                    buyer = maker
+                    seller = taker
+                else:
+                    buyer = taker
+                    seller = maker
+
+                await loop.run_in_executor(
+                    None,
+                    update_holding_after_buy,
+                    buyer.user_id,
+                    t.symbol,
+                    t.qty,
+                    t.price_cents / 100
+                )
+
+                await loop.run_in_executor(
+                    None,
+                    update_holding_after_sell,
+                    seller.user_id,
+                    t.symbol,
+                    t.qty
+                )
+
             trade_event = {
                 "type": "TradeExecuted",
                 "seq": cmd.seq,
@@ -180,7 +210,6 @@ class MatchingEngineService:
             if not self.is_replaying:
                 await self.event_queue.put(trade_event)
 
-            maker = self.orders.get(t.maker_order_id)
             if maker and not self.is_replaying:
                 await loop.run_in_executor(None, update_order, maker)
                 await self.event_queue.put({
@@ -194,7 +223,6 @@ class MatchingEngineService:
                     "reject_reason": maker.reject_reason,
                 })
 
-            taker = self.orders.get(t.taker_order_id)
             if taker and not self.is_replaying:
                 await loop.run_in_executor(None, update_order, taker)
                 await self.event_queue.put({

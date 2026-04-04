@@ -15,7 +15,7 @@ from docker.db import get_connection, put_connection
 from engine import Sequencer, MatchingEngineService, Command
 from publisher import WebSocketPublisher, event_fanout_loop
 from models import Order, Side, OrderType, now_ms
-from docker.repository import insert_command
+from docker.repository import insert_command, get_user_holdings, get_holding_quantity
 
 sequencer = Sequencer()
 engine = MatchingEngineService(symbol="AAPL")
@@ -49,6 +49,8 @@ app.add_middleware(
         "http://127.0.0.1:8000",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
         "null"
     ],
     allow_credentials=True,
@@ -69,59 +71,6 @@ class CreateOrderRequest(BaseModel):
 @app.get("/health")
 async def health():
     return {"status": "ok", "seq_applied": engine.seq_applied}
-
-
-@app.post("/orders")
-async def create_order(req: CreateOrderRequest):
-    if req.symbol != "AAPL":
-        raise HTTPException(status_code=400, detail="Only AAPL supported in MVP")
-
-    existing = sequencer.get_idempotent_result(req.user_id, req.client_order_id)
-    if existing:
-        return existing
-
-    try:
-        order = Order(
-            user_id=req.user_id,
-            symbol=req.symbol,
-            side=req.side,
-            type=req.type,
-            qty=req.qty,
-            price_cents=req.price_cents,
-            client_order_id=req.client_order_id,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-    seq = await sequencer.next_seq()
-
-    payload = {
-        "order_id": order.order_id,
-        "client_order_id": order.client_order_id,
-        "user_id": order.user_id,
-        "symbol": order.symbol,
-        "side": order.side.value,
-        "type": order.type.value,
-        "qty": order.qty,
-        "price_cents": order.price_cents,
-        "created_ms": order.created_ms
-    }
-
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, lambda: insert_command(seq, "NEW_ORDER", payload, order.created_ms))
-
-    cmd = Command(seq=seq, type="NEW_ORDER", payload={"order": order})
-    await engine.submit(cmd)
-
-    result = {
-        "message": "order accepted for processing",
-        "seq": seq,
-        "order_id": order.order_id,
-        "client_order_id": order.client_order_id,
-    }
-
-    sequencer.save_idempotent_result(req.user_id, req.client_order_id, result)
-    return result
 
 
 @app.delete("/orders/{order_id}")
@@ -187,39 +136,67 @@ async def get_order(order_id: str):
     }
 
 
-@app.get("/orders")
-async def list_orders(user_id: Optional[str] = None, status: Optional[str] = None, limit: int = 50):
-    orders = list(engine.orders.values())
+@app.post("/orders")
+async def create_order(req: CreateOrderRequest):
+    if req.symbol != "AAPL":
+        raise HTTPException(status_code=400, detail="Only AAPL supported in MVP")
 
-    if user_id is not None:
-        orders = [o for o in orders if o.user_id == user_id]
+    # block SELL if user does not own enough shares
+    if req.side.value == "SELL":
+        owned_qty = get_holding_quantity(req.user_id, req.symbol)
 
-    if status is not None:
-        status_upper = status.upper()
-        orders = [o for o in orders if o.status.value == status_upper]
+        if owned_qty < req.qty:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Not enough shares to sell. Owned: {owned_qty}, Trying to sell: {req.qty}"
+            )
 
-    orders = sorted(orders, key=lambda o: o.created_ms, reverse=True)[:limit]
+    existing = sequencer.get_idempotent_result(req.user_id, req.client_order_id)
+    if existing:
+        return existing
 
-    return {
-        "orders": [
-            {
-                "order_id": o.order_id,
-                "client_order_id": o.client_order_id,
-                "user_id": o.user_id,
-                "symbol": o.symbol,
-                "side": o.side.value,
-                "type": o.type.value,
-                "qty": o.qty,
-                "remaining_qty": o.remaining_qty,
-                "price_cents": o.price_cents,
-                "status": o.status.value,
-                "reject_reason": o.reject_reason,
-                "created_ms": o.created_ms,
-            }
-            for o in orders
-        ]
+    try:
+        order = Order(
+            user_id=req.user_id,
+            symbol=req.symbol,
+            side=req.side,
+            type=req.type,
+            qty=req.qty,
+            price_cents=req.price_cents,
+            client_order_id=req.client_order_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    seq = await sequencer.next_seq()
+
+    payload = {
+        "order_id": order.order_id,
+        "client_order_id": order.client_order_id,
+        "user_id": order.user_id,
+        "symbol": order.symbol,
+        "side": order.side.value,
+        "type": order.type.value,
+        "qty": order.qty,
+        "price_cents": order.price_cents,
+        "created_ms": order.created_ms
     }
 
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, lambda: insert_command(seq, "NEW_ORDER", payload, order.created_ms))
+
+    cmd = Command(seq=seq, type="NEW_ORDER", payload={"order": order})
+    await engine.submit(cmd)
+
+    result = {
+        "message": "order accepted for processing",
+        "seq": seq,
+        "order_id": order.order_id,
+        "client_order_id": order.client_order_id,
+    }
+
+    sequencer.save_idempotent_result(req.user_id, req.client_order_id, result)
+    return result
 
 @app.websocket("/stream")
 async def stream(ws: WebSocket):
@@ -360,6 +337,9 @@ def get_users():
         ]
     }
 
+@app.get("/holdings/{user_id}")
+def fetch_holdings(user_id: str):
+    return get_user_holdings(user_id)
 
 @app.get("/candles")
 def get_candles(
@@ -448,3 +428,4 @@ def get_candles(
         }
         for row in rows
     ]
+

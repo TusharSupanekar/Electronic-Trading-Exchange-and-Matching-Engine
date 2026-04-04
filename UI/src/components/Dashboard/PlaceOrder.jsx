@@ -109,13 +109,29 @@ const PlaceOrder = () => {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Order failed");
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
+      console.log("API error response:", data);
+
+      if (!res.ok) {
+        const errorMessage =
+          data?.detail?.includes("Not enough shares")
+            ? "You don't have stocks to trade"
+            : data?.detail || data?.message || "Order failed";
+
+        throw new Error(errorMessage);
+      }
 
       alert(`${side} order placed successfully`);
       setOpenModal(false);
     } catch (err) {
       console.error(err);
-      alert("Failed to place order");
+      alert(err.message || "Failed to place order");
     }
   };
 

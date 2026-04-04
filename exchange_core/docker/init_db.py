@@ -53,6 +53,17 @@ def init_db():
     );
     """)
 
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS holdings (
+        id SERIAL PRIMARY KEY,
+        user_id INT NOT NULL,
+        symbol VARCHAR(20) NOT NULL,
+        quantity INT NOT NULL DEFAULT 0,
+        avg_price NUMERIC(12,2) DEFAULT 0,
+        UNIQUE(user_id, symbol)
+    );
+    """)
+
     conn.commit()
     cur.close()
     conn.close()
