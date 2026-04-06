@@ -53,6 +53,52 @@ def init_db():
     );
     """)
 
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS holdings (
+        id SERIAL PRIMARY KEY,
+        user_id INT NOT NULL,
+        symbol VARCHAR(20) NOT NULL,
+        quantity INT NOT NULL DEFAULT 0,
+        avg_price NUMERIC(12,2) DEFAULT 0,
+        UNIQUE(user_id, symbol)
+    );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS wallets (
+            wallet_id SERIAL PRIMARY KEY,
+            user_id INTEGER UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            balance_cents BIGINT NOT NULL DEFAULT 0,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS wallet_transactions (
+            txn_id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            type VARCHAR(30) NOT NULL,
+            amount_cents BIGINT NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'SUCCESS',
+            reference VARCHAR(100),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+    
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS payment_methods (
+            payment_method_id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            method_type VARCHAR(20) NOT NULL,
+            provider VARCHAR(50),
+            last4 VARCHAR(4),
+            bank_name VARCHAR(100),
+            account_mask VARCHAR(10),
+            is_default BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+
     conn.commit()
     cur.close()
     conn.close()

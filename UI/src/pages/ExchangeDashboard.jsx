@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Box, Typography, Drawer, IconButton, Button } from "@mui/material";
+import { Box, Typography, Drawer, IconButton, Button, Snackbar, Alert } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useTheme } from "@mui/material/styles";
 import { useMediaQuery } from "@mui/material";
@@ -368,7 +368,24 @@ const InlineOrderPanel = ({ bestBid, bestAsk }) => {
   const [qty, setQty] = useState("1");
   const [price, setPrice] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
   const userId = localStorage.getItem("user_id");
+
+  const showNotification = (message, severity = "success") => {
+    setNotification({
+      open: true,
+      message,
+      severity,
+    });
+  };
+
+  const handleCloseNotification = () => {
+    setNotification((prev) => ({ ...prev, open: false }));
+  };
 
   const estimatedTotal = useMemo(() => {
     const p = orderType === "MARKET" ? (side === "BUY" ? bestAsk : bestBid) : Number(price || 0);
@@ -376,7 +393,7 @@ const InlineOrderPanel = ({ bestBid, bestAsk }) => {
   }, [qty, price, orderType, side, bestBid, bestAsk]);
 
   const handleSubmit = async () => {
-    if (!userId) return alert("Not logged in");
+    if (!userId) return showNotification("Not logged in", "error");
     setSubmitting(true);
     try {
       const res = await fetch("http://localhost:8000/orders", {
@@ -392,10 +409,21 @@ const InlineOrderPanel = ({ bestBid, bestAsk }) => {
           client_order_id: Date.now().toString(),
         }),
       });
-      if (!res.ok) throw new Error("failed");
-      alert(`${side} order placed!`);
-    } catch {
-      alert("Order failed");
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        const errorMessage =
+          data?.detail?.includes("Not enough shares")
+            ? "You don't have stocks to trade"
+            : data?.detail || "Order failed";
+
+        throw new Error(errorMessage);
+      }
+
+      showNotification(`${side} order placed successfully`, "success");
+    } catch (err) {
+      showNotification(err.message || "Order failed", "error");
     } finally {
       setSubmitting(false);
     }
@@ -409,127 +437,149 @@ const InlineOrderPanel = ({ bestBid, bestAsk }) => {
       await Promise.all((data.orders || []).map((o) =>
         fetch(`http://localhost:8000/orders/${o.order_id}`, { method: "DELETE" })
       ));
-      alert("All active orders cancelled");
+      showNotification("All active orders cancelled", "success");
     } catch {
-      alert("Failed to cancel orders");
+      showNotification("Failed to cancel orders", "error");
     }
   };
 
   return (
-    <Box sx={{ background: "#0f1728", border: "1px solid rgba(99,102,241,0.18)", borderRadius: "14px", p: 2 }}>
-      {/* Header */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-        <Typography sx={{ fontWeight: 700, fontSize: 16 }}>Order Placement</Typography>
-        <Box onClick={cancelAll} sx={{ px: 1.4, py: 0.4, borderRadius: "6px", cursor: "pointer", fontSize: 11, fontWeight: 600,
-          border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444",
-          "&:hover": { background: "rgba(239,68,68,0.08)" }, transition: "all 0.15s",
-        }}>
-          Cancel All
-        </Box>
-      </Box>
-
-      {/* Buy / Sell */}
-      <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", border: "1px solid rgba(99,102,241,0.18)", borderRadius: "10px", overflow: "hidden", mb: 1.5 }}>
-        {["BUY", "SELL"].map((s) => (
-          <Box key={s} onClick={() => setSide(s)} sx={{
-            py: 1, textAlign: "center", cursor: "pointer", fontWeight: 700, fontSize: 14, userSelect: "none",
-            background: side === s ? (s === "BUY" ? "#16a34a" : "#dc2626") : "transparent",
-            color: side === s ? "#fff" : "rgba(255,255,255,0.35)",
-            transition: "all 0.15s",
+    <>
+      <Box sx={{ background: "#0f1728", border: "1px solid rgba(99,102,241,0.18)", borderRadius: "14px", p: 2 }}>
+        {/* Header */}
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 16 }}>Order Placement</Typography>
+          <Box onClick={cancelAll} sx={{ px: 1.4, py: 0.4, borderRadius: "6px", cursor: "pointer", fontSize: 11, fontWeight: 600,
+            border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444",
+            "&:hover": { background: "rgba(239,68,68,0.08)" }, transition: "all 0.15s",
           }}>
-            {s}
-          </Box>
-        ))}
-      </Box>
-
-      {/* Order type tabs */}
-      <Box sx={{ display: "flex", gap: 0.6, mb: 1.5 }}>
-        {["LIMIT", "MARKET"].map((t) => (
-          <Box key={t} onClick={() => setOrderType(t)} sx={{
-            px: 1.5, py: 0.55, borderRadius: "7px", cursor: "pointer", fontSize: 12, fontWeight: 600, userSelect: "none",
-            background: orderType === t ? "rgba(99,102,241,0.2)" : "transparent",
-            color: orderType === t ? "#fff" : "rgba(255,255,255,0.38)",
-            border: orderType === t ? "1px solid rgba(255,255,255,0.14)" : "1px solid transparent",
-            transition: "all 0.15s",
-          }}>
-            {t}
-          </Box>
-        ))}
-      </Box>
-
-      {/* Price */}
-      {orderType === "LIMIT" && (
-        <Box sx={{ mb: 1.5 }}>
-          <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.4)", mb: 0.6, textTransform: "uppercase", letterSpacing: 0.7 }}>Price</Typography>
-          <Box sx={{ position: "relative" }}>
-            <Typography sx={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.45)", fontSize: 15, pointerEvents: "none" }}>$</Typography>
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="0.00"
-              style={{
-                width: "100%", background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.2)",
-                borderRadius: "9px", padding: "10px 12px 10px 26px", color: "#fff", fontSize: "17px", fontWeight: 700,
-                outline: "none", boxSizing: "border-box",
-              }}
-            />
-          </Box>
-          <Box sx={{ display: "flex", gap: 0.6, mt: 0.8 }}>
-            <QfBtn label={`Bid $${bestBid?.toFixed(2) || "--"}`} color="#22c55e" onClick={() => setPrice(bestBid?.toFixed(2) || "")} disabled={!bestBid} />
-            <QfBtn label="Mid" color="#f5a520" onClick={() => bestBid && bestAsk && setPrice(((bestBid + bestAsk) / 2).toFixed(2))} disabled={!bestBid || !bestAsk} />
-            <QfBtn label={`Ask $${bestAsk?.toFixed(2) || "--"}`} color="#ef4444" onClick={() => setPrice(bestAsk?.toFixed(2) || "")} disabled={!bestAsk} />
+            Cancel All
           </Box>
         </Box>
-      )}
 
-      {/* Amount */}
-      <Box sx={{ mb: 1.5 }}>
-        <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.4)", mb: 0.6, textTransform: "uppercase", letterSpacing: 0.7 }}>Amount</Typography>
-        <Box sx={{ display: "flex", alignItems: "center", background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: "9px", overflow: "hidden" }}>
-          <input
-            type="number"
-            value={qty}
-            onChange={(e) => setQty(e.target.value)}
-            style={{ flex: 1, background: "transparent", border: "none", padding: "10px 12px", color: "#fff", fontSize: "17px", fontWeight: 700, outline: "none" }}
-          />
-          <Typography sx={{ px: 1.5, fontSize: 12, color: "rgba(255,255,255,0.35)", borderLeft: "1px solid rgba(99,102,241,0.18)", py: 1.3 }}>shares</Typography>
-        </Box>
-        <Box sx={{ display: "flex", gap: 0.6, mt: 0.8 }}>
-          {[1, 5, 10, 50, 100].map((n) => (
-            <Box key={n} onClick={() => setQty(String(n))} sx={{
-              flex: 1, textAlign: "center", py: 0.55, cursor: "pointer", fontSize: 11, fontWeight: 600,
-              borderRadius: "6px", border: "1px solid rgba(255,255,255,0.09)", color: "rgba(255,255,255,0.45)",
-              "&:hover": { border: "1px solid rgba(255,255,255,0.22)", color: "#fff", background: "rgba(99,102,241,0.06)" },
-              transition: "all 0.15s", userSelect: "none",
+        {/* Buy / Sell */}
+        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", border: "1px solid rgba(99,102,241,0.18)", borderRadius: "10px", overflow: "hidden", mb: 1.5 }}>
+          {["BUY", "SELL"].map((s) => (
+            <Box key={s} onClick={() => setSide(s)} sx={{
+              py: 1, textAlign: "center", cursor: "pointer", fontWeight: 700, fontSize: 14, userSelect: "none",
+              background: side === s ? (s === "BUY" ? "#16a34a" : "#dc2626") : "transparent",
+              color: side === s ? "#fff" : "rgba(255,255,255,0.35)",
+              transition: "all 0.15s",
             }}>
-              {n}
+              {s}
             </Box>
           ))}
         </Box>
+
+        {/* Order type tabs */}
+        <Box sx={{ display: "flex", gap: 0.6, mb: 1.5 }}>
+          {["LIMIT", "MARKET"].map((t) => (
+            <Box key={t} onClick={() => setOrderType(t)} sx={{
+              px: 1.5, py: 0.55, borderRadius: "7px", cursor: "pointer", fontSize: 12, fontWeight: 600, userSelect: "none",
+              background: orderType === t ? "rgba(99,102,241,0.2)" : "transparent",
+              color: orderType === t ? "#fff" : "rgba(255,255,255,0.38)",
+              border: orderType === t ? "1px solid rgba(255,255,255,0.14)" : "1px solid transparent",
+              transition: "all 0.15s",
+            }}>
+              {t}
+            </Box>
+          ))}
+        </Box>
+
+        {/* Price */}
+        {orderType === "LIMIT" && (
+          <Box sx={{ mb: 1.5 }}>
+            <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.4)", mb: 0.6, textTransform: "uppercase", letterSpacing: 0.7 }}>Price</Typography>
+            <Box sx={{ position: "relative" }}>
+              <Typography sx={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.45)", fontSize: 15, pointerEvents: "none" }}>$</Typography>
+              <input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="0.00"
+                style={{
+                  width: "100%", background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.2)",
+                  borderRadius: "9px", padding: "10px 12px 10px 26px", color: "#fff", fontSize: "17px", fontWeight: 700,
+                  outline: "none", boxSizing: "border-box",
+                }}
+              />
+            </Box>
+            <Box sx={{ display: "flex", gap: 0.6, mt: 0.8 }}>
+              <QfBtn label={`Bid $${bestBid?.toFixed(2) || "--"}`} color="#22c55e" onClick={() => setPrice(bestBid?.toFixed(2) || "")} disabled={!bestBid} />
+              <QfBtn label="Mid" color="#f5a520" onClick={() => bestBid && bestAsk && setPrice(((bestBid + bestAsk) / 2).toFixed(2))} disabled={!bestBid || !bestAsk} />
+              <QfBtn label={`Ask $${bestAsk?.toFixed(2) || "--"}`} color="#ef4444" onClick={() => setPrice(bestAsk?.toFixed(2) || "")} disabled={!bestAsk} />
+            </Box>
+          </Box>
+        )}
+
+        {/* Amount */}
+        <Box sx={{ mb: 1.5 }}>
+          <Typography sx={{ fontSize: 11, color: "rgba(255,255,255,0.4)", mb: 0.6, textTransform: "uppercase", letterSpacing: 0.7 }}>Amount</Typography>
+          <Box sx={{ display: "flex", alignItems: "center", background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: "9px", overflow: "hidden" }}>
+            <input
+              type="number"
+              value={qty}
+              onChange={(e) => setQty(e.target.value)}
+              style={{ flex: 1, background: "transparent", border: "none", padding: "10px 12px", color: "#fff", fontSize: "17px", fontWeight: 700, outline: "none" }}
+            />
+            <Typography sx={{ px: 1.5, fontSize: 12, color: "rgba(255,255,255,0.35)", borderLeft: "1px solid rgba(99,102,241,0.18)", py: 1.3 }}>shares</Typography>
+          </Box>
+          <Box sx={{ display: "flex", gap: 0.6, mt: 0.8 }}>
+            {[1, 5, 10, 50, 100].map((n) => (
+              <Box key={n} onClick={() => setQty(String(n))} sx={{
+                flex: 1, textAlign: "center", py: 0.55, cursor: "pointer", fontSize: 11, fontWeight: 600,
+                borderRadius: "6px", border: "1px solid rgba(255,255,255,0.09)", color: "rgba(255,255,255,0.45)",
+                "&:hover": { border: "1px solid rgba(255,255,255,0.22)", color: "#fff", background: "rgba(99,102,241,0.06)" },
+                transition: "all 0.15s", userSelect: "none",
+              }}>
+                {n}
+              </Box>
+            ))}
+          </Box>
+        </Box>
+
+        {/* Estimated cost */}
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", py: 1.2, borderTop: "1px solid rgba(99,102,241,0.18)", mb: 1.5 }}>
+          <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Estimated Cost</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: 16 }}>${estimatedTotal}</Typography>
+        </Box>
+
+        {/* Submit */}
+        <Box onClick={!submitting ? handleSubmit : undefined} sx={{
+          py: 1.3, textAlign: "center", borderRadius: "10px",
+          cursor: submitting ? "default" : "pointer",
+          background: side === "BUY"
+            ? "linear-gradient(135deg, #16a34a 0%, #15803d 100%)"
+            : "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
+          color: "#fff", fontWeight: 700, fontSize: 15, userSelect: "none",
+          opacity: submitting ? 0.7 : 1,
+          "&:hover": { filter: submitting ? "none" : "brightness(1.08)" },
+          transition: "all 0.15s",
+        }}>
+          {submitting ? "Placing..." : `Place ${side} Order`}
+        </Box>
       </Box>
 
-      {/* Estimated cost */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", py: 1.2, borderTop: "1px solid rgba(99,102,241,0.18)", mb: 1.5 }}>
-        <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Estimated Cost</Typography>
-        <Typography sx={{ fontWeight: 700, fontSize: 16 }}>${estimatedTotal}</Typography>
-      </Box>
-
-      {/* Submit */}
-      <Box onClick={!submitting ? handleSubmit : undefined} sx={{
-        py: 1.3, textAlign: "center", borderRadius: "10px",
-        cursor: submitting ? "default" : "pointer",
-        background: side === "BUY"
-          ? "linear-gradient(135deg, #16a34a 0%, #15803d 100%)"
-          : "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
-        color: "#fff", fontWeight: 700, fontSize: 15, userSelect: "none",
-        opacity: submitting ? 0.7 : 1,
-        "&:hover": { filter: submitting ? "none" : "brightness(1.08)" },
-        transition: "all 0.15s",
-      }}>
-        {submitting ? "Placing..." : `Place ${side} Order`}
-      </Box>
-    </Box>
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={3000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseNotification}
+          severity={notification.severity}
+          variant="filled"
+          sx={{
+            width: "100%",
+            fontWeight: 600,
+            borderRadius: "10px",
+          }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
+    </>
   );
 };
 

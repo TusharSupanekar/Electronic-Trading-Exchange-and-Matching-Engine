@@ -156,3 +156,92 @@ def get_user_by_email(email):
     put_connection(conn)
 
     return user
+
+def get_user_holdings(user_id):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT symbol, quantity, avg_price
+        FROM holdings
+        WHERE user_id = %s AND quantity > 0
+        ORDER BY symbol
+    """, (user_id,))
+
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return [
+        {
+            "symbol": row[0],
+            "quantity": row[1],
+            "avg_price": float(row[2]) if row[2] is not None else 0
+        }
+        for row in rows
+    ]
+
+
+def get_holding_quantity(user_id, symbol):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT quantity
+        FROM holdings
+        WHERE user_id = %s AND symbol = %s
+    """, (user_id, symbol))
+
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return row[0] if row else 0
+
+
+def update_holding_after_buy(user_id, symbol, qty, price):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT quantity, avg_price
+        FROM holdings
+        WHERE user_id = %s AND symbol = %s
+    """, (user_id, symbol))
+
+    row = cur.fetchone()
+
+    if row:
+        old_qty, old_avg = row
+        new_qty = old_qty + qty
+        new_avg = ((old_qty * float(old_avg)) + (qty * float(price))) / new_qty
+
+        cur.execute("""
+            UPDATE holdings
+            SET quantity = %s, avg_price = %s
+            WHERE user_id = %s AND symbol = %s
+        """, (new_qty, new_avg, user_id, symbol))
+    else:
+        cur.execute("""
+            INSERT INTO holdings (user_id, symbol, quantity, avg_price)
+            VALUES (%s, %s, %s, %s)
+        """, (user_id, symbol, qty, price))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def update_holding_after_sell(user_id, symbol, qty):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE holdings
+        SET quantity = quantity - %s
+        WHERE user_id = %s AND symbol = %s
+    """, (qty, user_id, symbol))
+
+    conn.commit()
+    cur.close()
+    conn.close()
