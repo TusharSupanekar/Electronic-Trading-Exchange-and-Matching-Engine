@@ -14,6 +14,7 @@ import SpeedIcon from "@mui/icons-material/Speed";
 import {
   getWallet, getHoldings, getPnl, getBookSnapshot, getRecentTrades,
 } from "../../api/exchangeApi";
+import useColors from "../../theme/useColors.js";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -28,25 +29,26 @@ const pnlBg   = (val) => (val >= 0 ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function SummaryCard({ icon, label, value, sub, subColor, accent }) {
+function SummaryCard({ icon, label, value, sub, subColor, accent, c }) {
   return (
     <Box sx={{
-      background: "#0f1728",
-      border: `1px solid ${accent ? accent + "44" : "rgba(99,102,241,0.18)"}`,
-      borderRadius: "14px", p: 2.5, flex: 1, minWidth: 160,
-      boxShadow: accent ? `0 0 18px ${accent}18` : "none",
+      background: c.cardBg,
+      border: `1px solid ${accent ? accent + "44" : c.border}`,
+      borderRadius: "14px",
+      p: { xs: 1.75, md: 2.5 },
+      boxShadow: accent ? `0 0 18px ${accent}18` : c.shadow,
     }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
-        <Box sx={{ color: accent || "#6366f1" }}>{icon}</Box>
-        <Typography variant="overline" sx={{ color: "rgba(255,255,255,0.4)", letterSpacing: 1.2, fontSize: 11 }}>
+        <Box sx={{ color: accent || "#6366f1", fontSize: { xs: 18, md: 22 } }}>{icon}</Box>
+        <Typography variant="overline" sx={{ color: c.t3, letterSpacing: 1.2, fontSize: { xs: 10, md: 11 } }}>
           {label}
         </Typography>
       </Box>
-      <Typography sx={{ fontSize: 26, fontWeight: 800, color: "#e0e7ff", lineHeight: 1.1 }}>
+      <Typography sx={{ fontSize: { xs: 18, sm: 22, md: 26 }, fontWeight: 800, color: c.t1, lineHeight: 1.1 }}>
         {value}
       </Typography>
       {sub !== undefined && (
-        <Typography sx={{ fontSize: 12, mt: 0.5, color: subColor || "rgba(255,255,255,0.4)" }}>
+        <Typography sx={{ fontSize: { xs: 11, md: 12 }, mt: 0.5, color: subColor || c.t3 }}>
           {sub}
         </Typography>
       )}
@@ -54,14 +56,14 @@ function SummaryCard({ icon, label, value, sub, subColor, accent }) {
   );
 }
 
-function AllocationBar({ label, pct, color }) {
+function AllocationBar({ label, pct, color, c }) {
   return (
-    <Box sx={{ mb: 1.5 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-        <Typography sx={{ fontSize: 13, color: "#e0e7ff" }}>{label}</Typography>
-        <Typography sx={{ fontSize: 13, color, fontWeight: 700 }}>{pct.toFixed(1)}%</Typography>
+    <Box sx={{ mb: 1.5, minWidth: 0 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5, gap: 1, minWidth: 0 }}>
+        <Typography sx={{ fontSize: 13, color: c.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{label}</Typography>
+        <Typography sx={{ fontSize: 13, color, fontWeight: 700, flexShrink: 0 }}>{pct.toFixed(1)}%</Typography>
       </Box>
-      <Box sx={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden" }}>
+      <Box sx={{ height: 6, background: c.trackBg, borderRadius: 3, overflow: "hidden" }}>
         <Box sx={{
           height: "100%", width: `${Math.min(pct, 100)}%`,
           background: color, borderRadius: 3,
@@ -76,6 +78,7 @@ function AllocationBar({ label, pct, color }) {
 
 const Portfolio = () => {
   const userId = localStorage.getItem("user_id");
+  const c = useColors();
 
   const [wallet, setWallet]       = useState(null);
   const [holdings, setHoldings]   = useState([]);
@@ -98,7 +101,6 @@ const Portfolio = () => {
       setHoldings(Array.isArray(h) ? h : []);
       setPnl(p);
       setSnapshot(snap);
-      // filter trades that involve this user
       setRecentTrades((trades?.trades || []).filter(
         (t) => t.taker_user_id === String(userId) || t.maker_user_id === String(userId)
       ).slice(0, 10));
@@ -128,14 +130,12 @@ const Portfolio = () => {
   // ── Derived calculations ───────────────────────────────────────────────────
   const cashBalance = (wallet?.balance_cents ?? 0) / 100;
 
-  // Current price: midpoint of best bid + ask, fallback to last trade
   const bestBid = snapshot?.bids?.[0]?.[0] ?? 0;
   const bestAsk = snapshot?.asks?.[0]?.[0] ?? 0;
   const currentPrice = bestBid && bestAsk
-    ? (bestBid + bestAsk) / 200          // midpoint in dollars
+    ? (bestBid + bestAsk) / 200
     : bestBid / 100 || bestAsk / 100;
 
-  // Enrich each holding with live price data
   const enriched = holdings.map((h) => {
     const price = currentPrice || h.avg_price;
     const marketValue = h.quantity * price;
@@ -158,7 +158,6 @@ const Portfolio = () => {
   const best  = enriched.reduce((a, b) => (b.unrealizedPct > (a?.unrealizedPct ?? -Infinity) ? b : a), null);
   const worst = enriched.reduce((a, b) => (b.unrealizedPct < (a?.unrealizedPct ?? Infinity) ? b : a), null);
 
-  // Allocation slices
   const allocSlices = [
     { label: "Cash", value: cashBalance, color: "#6366f1" },
     ...enriched.map((h) => ({ label: h.symbol, value: h.marketValue, color: "#22c55e" })),
@@ -170,38 +169,38 @@ const Portfolio = () => {
 
       {/* ── Header ── */}
       <Box>
-        <Typography sx={{ fontSize: 24, fontWeight: 800, color: "#e0e7ff" }}>
+        <Typography sx={{ fontSize: 24, fontWeight: 800, color: c.t1 }}>
           My Portfolio
         </Typography>
-        <Typography sx={{ fontSize: 13, color: "rgba(255,255,255,0.35)", mt: 0.25 }}>
+        <Typography sx={{ fontSize: 13, color: c.t3, mt: 0.25 }}>
           Live snapshot · prices update on refresh
         </Typography>
       </Box>
 
       {/* ── Summary Cards ── */}
-      <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-        <SummaryCard
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: { xs: 1.5, md: 2 } }}>
+        <SummaryCard c={c}
           icon={<ShowChartIcon />}
           label="Total Portfolio Value"
           value={fmtUSD(totalPortfolio)}
           sub={totalCostBasis > 0 ? `Cost basis: ${fmtUSD(totalCostBasis + cashBalance)}` : "No invested positions"}
           accent="#6366f1"
         />
-        <SummaryCard
+        <SummaryCard c={c}
           icon={<AccountBalanceWalletIcon />}
           label="Available Cash"
           value={fmtUSD(cashBalance)}
           sub={totalPortfolio > 0 ? `${((cashBalance / totalPortfolio) * 100).toFixed(1)}% of portfolio` : undefined}
           accent="#38bdf8"
         />
-        <SummaryCard
+        <SummaryCard c={c}
           icon={<InventoryIcon />}
           label="Invested Amount"
           value={fmtUSD(totalCostBasis)}
           sub={`${numPositions} position${numPositions !== 1 ? "s" : ""} · ${totalShares} share${totalShares !== 1 ? "s" : ""}`}
           accent="#a78bfa"
         />
-        <SummaryCard
+        <SummaryCard c={c}
           icon={totalPnl >= 0 ? <TrendingUpIcon /> : <TrendingDownIcon />}
           label="Overall P&L"
           value={fmtUSD(totalPnl)}
@@ -215,67 +214,68 @@ const Portfolio = () => {
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 280px" }, gap: 2 }}>
 
         {/* Holdings Table */}
-        <Box sx={{ background: "#0f1728", border: "1px solid rgba(99,102,241,0.18)", borderRadius: "14px", p: 2.5, overflow: "hidden" }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 16, color: "#e0e7ff", mb: 2 }}>
+        <Box sx={{ background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "14px", p: { xs: 1.75, md: 2.5 }, boxShadow: c.shadow, minWidth: 0 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 16, color: c.t1, mb: 2 }}>
             Current Holdings
           </Typography>
 
           {enriched.length === 0 ? (
             <Box sx={{ textAlign: "center", py: 4 }}>
-              <InventoryIcon sx={{ fontSize: 40, color: "rgba(255,255,255,0.1)", mb: 1 }} />
-              <Typography sx={{ color: "rgba(255,255,255,0.3)", fontSize: 14 }}>
+              <InventoryIcon sx={{ fontSize: 40, color: c.t4, mb: 1 }} />
+              <Typography sx={{ color: c.t3, fontSize: 14 }}>
                 No open positions yet. Place a buy order to get started.
               </Typography>
             </Box>
           ) : (
-            <Box sx={{ overflowX: "auto" }}>
-              {/* Table header */}
-              <Box sx={{ display: "grid", gridTemplateColumns: "100px 70px 110px 110px 110px 130px 90px", gap: 1, pb: 1, mb: 1, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                {["Symbol", "Shares", "Avg Price", "Cur. Price", "Mkt Value", "Unreal. P&L", "P&L %"].map((h) => (
-                  <Typography key={h} sx={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: 0.8 }}>
-                    {h}
-                  </Typography>
+            <Box sx={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+              <Box sx={{ minWidth: 620 }}>
+                <Box sx={{ display: "grid", gridTemplateColumns: "100px 70px 110px 110px 110px 130px 90px", gap: 1, pb: 1, mb: 1, borderBottom: `1px solid ${c.rowBdr}` }}>
+                  {["Symbol", "Shares", "Avg Price", "Cur. Price", "Mkt Value", "Unreal. P&L", "P&L %"].map((h) => (
+                    <Typography key={h} sx={{ fontSize: 11, fontWeight: 600, color: c.t3, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                      {h}
+                    </Typography>
+                  ))}
+                </Box>
+                {enriched.map((h) => (
+                  <Box key={h.symbol} sx={{
+                    display: "grid", gridTemplateColumns: "100px 70px 110px 110px 110px 130px 90px",
+                    gap: 1, py: 1.25, alignItems: "center",
+                    borderBottom: `1px solid ${c.rowBdr}`,
+                    "&:last-child": { borderBottom: "none" },
+                    "&:hover": { background: c.rowHov },
+                  }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Box sx={{ width: 8, height: 8, borderRadius: "50%", background: "#6366f1", flexShrink: 0 }} />
+                      <Typography sx={{ fontWeight: 700, color: c.t1, fontSize: 14 }}>{h.symbol}</Typography>
+                    </Box>
+                    <Typography sx={{ color: c.t1, fontSize: 14 }}>{h.quantity}</Typography>
+                    <Typography sx={{ color: c.t2, fontSize: 13 }}>{fmtUSD(h.avg_price)}</Typography>
+                    <Typography sx={{ color: c.t1, fontSize: 14, fontWeight: 600 }}>
+                      {currentPrice ? fmtUSD(h.currentPrice) : "—"}
+                    </Typography>
+                    <Typography sx={{ color: c.t1, fontSize: 14 }}>{fmtUSD(h.marketValue)}</Typography>
+                    <Typography sx={{ color: pnlColor(h.unrealizedPnl), fontSize: 14, fontWeight: 600 }}>
+                      {h.unrealizedPnl >= 0 ? "+" : ""}{fmtUSD(h.unrealizedPnl)}
+                    </Typography>
+                    <Box sx={{ px: 1, py: 0.3, borderRadius: "6px", background: pnlBg(h.unrealizedPct), display: "inline-flex", justifyContent: "center" }}>
+                      <Typography sx={{ fontSize: 12, fontWeight: 700, color: pnlColor(h.unrealizedPct) }}>
+                        {fmtPct(h.unrealizedPct)}
+                      </Typography>
+                    </Box>
+                  </Box>
                 ))}
               </Box>
-              {/* Table rows */}
-              {enriched.map((h) => (
-                <Box key={h.symbol} sx={{
-                  display: "grid", gridTemplateColumns: "100px 70px 110px 110px 110px 130px 90px",
-                  gap: 1, py: 1.25, alignItems: "center",
-                  borderBottom: "1px solid rgba(255,255,255,0.04)",
-                  "&:last-child": { borderBottom: "none" },
-                }}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Box sx={{ width: 8, height: 8, borderRadius: "50%", background: "#6366f1", flexShrink: 0 }} />
-                    <Typography sx={{ fontWeight: 700, color: "#e0e7ff", fontSize: 14 }}>{h.symbol}</Typography>
-                  </Box>
-                  <Typography sx={{ color: "#e0e7ff", fontSize: 14 }}>{h.quantity}</Typography>
-                  <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>{fmtUSD(h.avg_price)}</Typography>
-                  <Typography sx={{ color: "#e0e7ff", fontSize: 14, fontWeight: 600 }}>
-                    {currentPrice ? fmtUSD(h.currentPrice) : "—"}
-                  </Typography>
-                  <Typography sx={{ color: "#e0e7ff", fontSize: 14 }}>{fmtUSD(h.marketValue)}</Typography>
-                  <Typography sx={{ color: pnlColor(h.unrealizedPnl), fontSize: 14, fontWeight: 600 }}>
-                    {h.unrealizedPnl >= 0 ? "+" : ""}{fmtUSD(h.unrealizedPnl)}
-                  </Typography>
-                  <Box sx={{ px: 1, py: 0.3, borderRadius: "6px", background: pnlBg(h.unrealizedPct), display: "inline-flex", justifyContent: "center" }}>
-                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: pnlColor(h.unrealizedPct) }}>
-                      {fmtPct(h.unrealizedPct)}
-                    </Typography>
-                  </Box>
-                </Box>
-              ))}
             </Box>
           )}
         </Box>
 
         {/* Asset Allocation */}
-        <Box sx={{ background: "#0f1728", border: "1px solid rgba(99,102,241,0.18)", borderRadius: "14px", p: 2.5 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 16, color: "#e0e7ff", mb: 2 }}>
+        <Box sx={{ background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "14px", p: { xs: 1.75, md: 2.5 }, boxShadow: c.shadow, minWidth: 0, overflow: "hidden" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 16, color: c.t1, mb: 2 }}>
             Asset Allocation
           </Typography>
           {allocTotal <= 0.01 ? (
-            <Typography sx={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>
+            <Typography sx={{ color: c.t3, fontSize: 13 }}>
               No assets to display yet.
             </Typography>
           ) : (
@@ -285,14 +285,15 @@ const Portfolio = () => {
                 label={s.label}
                 pct={(s.value / allocTotal) * 100}
                 color={["#6366f1", "#22c55e", "#f59e0b", "#38bdf8", "#a78bfa"][i % 5]}
+                c={c}
               />
             ))
           )}
 
-          <Divider sx={{ borderColor: "rgba(255,255,255,0.06)", my: 2 }} />
+          <Divider sx={{ borderColor: c.border, my: 2 }} />
 
           {/* Quick Stats */}
-          <Typography sx={{ fontWeight: 700, fontSize: 14, color: "#e0e7ff", mb: 1.5 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 14, color: c.t1, mb: 1.5 }}>
             Quick Stats
           </Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -302,9 +303,9 @@ const Portfolio = () => {
               { label: "Stock Value",        value: fmtUSD(totalStockValue) },
               { label: "Buying Power",       value: fmtUSD(cashBalance) },
             ].map(({ label, value }) => (
-              <Box key={label} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography sx={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{label}</Typography>
-                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#e0e7ff" }}>{value}</Typography>
+              <Box key={label} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1, minWidth: 0 }}>
+                <Typography sx={{ fontSize: 13, color: c.t3, flexShrink: 0 }}>{label}</Typography>
+                <Typography sx={{ fontSize: 13, fontWeight: 600, color: c.t1, textAlign: "right" }}>{value}</Typography>
               </Box>
             ))}
           </Box>
@@ -315,10 +316,10 @@ const Portfolio = () => {
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
 
         {/* P&L Breakdown */}
-        <Box sx={{ background: "#0f1728", border: "1px solid rgba(99,102,241,0.18)", borderRadius: "14px", p: 2.5 }}>
+        <Box sx={{ background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "14px", p: { xs: 1.75, md: 2.5 }, boxShadow: c.shadow }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
             <SpeedIcon sx={{ color: "#6366f1", fontSize: 20 }} />
-            <Typography sx={{ fontWeight: 700, fontSize: 16, color: "#e0e7ff" }}>P&L Breakdown</Typography>
+            <Typography sx={{ fontWeight: 700, fontSize: 16, color: c.t1 }}>P&L Breakdown</Typography>
           </Box>
 
           {[
@@ -329,8 +330,8 @@ const Portfolio = () => {
             <React.Fragment key={label}>
               <Tooltip title={tooltip} placement="right">
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", py: 1.25,
-                  borderBottom: label !== "Total P&L" ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
-                  <Typography sx={{ fontSize: 14, color: bold ? "#e0e7ff" : "rgba(255,255,255,0.55)", fontWeight: bold ? 700 : 400 }}>
+                  borderBottom: label !== "Total P&L" ? `1px solid ${c.rowBdr}` : "none" }}>
+                  <Typography sx={{ fontSize: 14, color: bold ? c.t1 : c.t2, fontWeight: bold ? 700 : 400 }}>
                     {label}
                   </Typography>
                   <Box sx={{ px: 1.2, py: 0.3, borderRadius: "8px", background: pnlBg(value) }}>
@@ -343,26 +344,26 @@ const Portfolio = () => {
             </React.Fragment>
           ))}
 
-          <Divider sx={{ borderColor: "rgba(255,255,255,0.06)", my: 2 }} />
+          <Divider sx={{ borderColor: c.border, my: 2 }} />
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Typography sx={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>Total Buy Volume</Typography>
-            <Typography sx={{ fontSize: 13, color: "#e0e7ff", fontWeight: 600 }}>{fmtUSD(pnl?.total_buy ?? 0)}</Typography>
+            <Typography sx={{ fontSize: 13, color: c.t3 }}>Total Buy Volume</Typography>
+            <Typography sx={{ fontSize: 13, color: c.t1, fontWeight: 600 }}>{fmtUSD(pnl?.total_buy ?? 0)}</Typography>
           </Box>
           <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
-            <Typography sx={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>Total Sell Volume</Typography>
-            <Typography sx={{ fontSize: 13, color: "#e0e7ff", fontWeight: 600 }}>{fmtUSD(pnl?.total_sell ?? 0)}</Typography>
+            <Typography sx={{ fontSize: 13, color: c.t3 }}>Total Sell Volume</Typography>
+            <Typography sx={{ fontSize: 13, color: c.t1, fontWeight: 600 }}>{fmtUSD(pnl?.total_sell ?? 0)}</Typography>
           </Box>
         </Box>
 
         {/* Best / Worst + Performance Highlights */}
-        <Box sx={{ background: "#0f1728", border: "1px solid rgba(99,102,241,0.18)", borderRadius: "14px", p: 2.5 }}>
+        <Box sx={{ background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "14px", p: { xs: 1.75, md: 2.5 }, boxShadow: c.shadow }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
             <EmojiEventsIcon sx={{ color: "#f59e0b", fontSize: 20 }} />
-            <Typography sx={{ fontWeight: 700, fontSize: 16, color: "#e0e7ff" }}>Performance Highlights</Typography>
+            <Typography sx={{ fontWeight: 700, fontSize: 16, color: c.t1 }}>Performance Highlights</Typography>
           </Box>
 
           {enriched.length === 0 ? (
-            <Typography sx={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>
+            <Typography sx={{ color: c.t3, fontSize: 13 }}>
               No positions to analyze yet.
             </Typography>
           ) : (
@@ -373,7 +374,7 @@ const Portfolio = () => {
                     <TrendingUpIcon sx={{ color: "#22c55e", fontSize: 18 }} />
                     <Typography sx={{ fontSize: 12, color: "#22c55e", fontWeight: 600 }}>BEST POSITION</Typography>
                   </Box>
-                  <Typography sx={{ fontWeight: 700, color: "#e0e7ff", fontSize: 15 }}>{best.symbol}</Typography>
+                  <Typography sx={{ fontWeight: 700, color: c.t1, fontSize: 15 }}>{best.symbol}</Typography>
                   <Typography sx={{ fontSize: 13, color: "#22c55e" }}>
                     {fmtPct(best.unrealizedPct)} · {fmtUSD(best.unrealizedPnl)}
                   </Typography>
@@ -386,30 +387,30 @@ const Portfolio = () => {
                     <TrendingDownIcon sx={{ color: "#ef4444", fontSize: 18 }} />
                     <Typography sx={{ fontSize: 12, color: "#ef4444", fontWeight: 600 }}>WORST POSITION</Typography>
                   </Box>
-                  <Typography sx={{ fontWeight: 700, color: "#e0e7ff", fontSize: 15 }}>{worst.symbol}</Typography>
+                  <Typography sx={{ fontWeight: 700, color: c.t1, fontSize: 15 }}>{worst.symbol}</Typography>
                   <Typography sx={{ fontSize: 13, color: "#ef4444" }}>
                     {fmtPct(worst.unrealizedPct)} · {fmtUSD(worst.unrealizedPnl)}
                   </Typography>
                 </Box>
               )}
 
-              <Box sx={{ p: 1.5, borderRadius: "10px", background: "rgba(99,102,241,0.07)", border: "1px solid rgba(99,102,241,0.2)" }}>
-                <Typography sx={{ fontSize: 12, color: "#818cf8", fontWeight: 600, mb: 0.5 }}>PORTFOLIO HEALTH</Typography>
+              <Box sx={{ p: 1.5, borderRadius: "10px", background: c.accentBg, border: `1px solid ${c.accentBorder}` }}>
+                <Typography sx={{ fontSize: 12, color: c.accentText, fontWeight: 600, mb: 0.5 }}>PORTFOLIO HEALTH</Typography>
                 <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
-                  <Typography sx={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>Stock Exposure</Typography>
-                  <Typography sx={{ fontSize: 13, color: "#e0e7ff", fontWeight: 600 }}>
+                  <Typography sx={{ fontSize: 13, color: c.t2 }}>Stock Exposure</Typography>
+                  <Typography sx={{ fontSize: 13, color: c.t1, fontWeight: 600 }}>
                     {totalPortfolio > 0 ? ((totalStockValue / totalPortfolio) * 100).toFixed(1) : 0}%
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
-                  <Typography sx={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>Cash Exposure</Typography>
-                  <Typography sx={{ fontSize: 13, color: "#e0e7ff", fontWeight: 600 }}>
+                  <Typography sx={{ fontSize: 13, color: c.t2 }}>Cash Exposure</Typography>
+                  <Typography sx={{ fontSize: 13, color: c.t1, fontWeight: 600 }}>
                     {totalPortfolio > 0 ? ((cashBalance / totalPortfolio) * 100).toFixed(1) : 100}%
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
-                  <Typography sx={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>Avg Position Size</Typography>
-                  <Typography sx={{ fontSize: 13, color: "#e0e7ff", fontWeight: 600 }}>
+                  <Typography sx={{ fontSize: 13, color: c.t2 }}>Avg Position Size</Typography>
+                  <Typography sx={{ fontSize: 13, color: c.t1, fontWeight: 600 }}>
                     {numPositions > 0 ? fmtUSD(totalStockValue / numPositions) : "—"}
                   </Typography>
                 </Box>
@@ -420,52 +421,52 @@ const Portfolio = () => {
       </Box>
 
       {/* ── Recent Trade Activity ── */}
-      <Box sx={{ background: "#0f1728", border: "1px solid rgba(99,102,241,0.18)", borderRadius: "14px", p: 2.5 }}>
+      <Box sx={{ background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "14px", p: { xs: 1.75, md: 2.5 }, boxShadow: c.shadow }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
           <SwapHorizIcon sx={{ color: "#6366f1", fontSize: 20 }} />
-          <Typography sx={{ fontWeight: 700, fontSize: 16, color: "#e0e7ff" }}>Recent Trade Activity</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: 16, color: c.t1 }}>Recent Trade Activity</Typography>
         </Box>
 
         {recentTrades.length === 0 ? (
-          <Typography sx={{ color: "rgba(255,255,255,0.3)", fontSize: 14, py: 2, textAlign: "center" }}>
+          <Typography sx={{ color: c.t3, fontSize: 14, py: 2, textAlign: "center" }}>
             No trades found for your account yet.
           </Typography>
         ) : (
-          <Box>
-            {/* Header */}
-            <Box sx={{ display: "grid", gridTemplateColumns: "80px 80px 120px 100px 120px", gap: 2, pb: 1, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-              {["Symbol", "Side", "Price", "Qty", "Value"].map((h) => (
-                <Typography key={h} sx={{ fontSize: 11, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", fontWeight: 600, letterSpacing: 0.8 }}>
-                  {h}
-                </Typography>
-              ))}
-            </Box>
-            {recentTrades.map((t, i) => {
-              const isTaker  = String(t.taker_user_id) === String(userId);
-              const side     = isTaker ? t.taker_side : t.maker_side;
-              const isBuy    = side === "BUY";
-              const price    = (t.price_cents / 100).toFixed(2);
-              const value    = (t.price_cents * t.qty / 100).toFixed(2);
-              return (
-                <React.Fragment key={t.trade_id || i}>
-                  <Box sx={{
-                    display: "grid", gridTemplateColumns: "80px 80px 120px 100px 120px",
+          <Box sx={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+            <Box sx={{ minWidth: 480 }}>
+              <Box sx={{ display: "grid", gridTemplateColumns: "80px 90px 1fr 70px 1fr", gap: 2, pb: 1, borderBottom: `1px solid ${c.rowBdr}` }}>
+                {["Symbol", "Side", "Price", "Qty", "Value"].map((h) => (
+                  <Typography key={h} sx={{ fontSize: 11, color: c.t3, textTransform: "uppercase", fontWeight: 600, letterSpacing: 0.8 }}>
+                    {h}
+                  </Typography>
+                ))}
+              </Box>
+              {recentTrades.map((t, i) => {
+                const isTaker  = String(t.taker_user_id) === String(userId);
+                const side     = isTaker ? t.taker_side : t.maker_side;
+                const isBuy    = side === "BUY";
+                const price    = (t.price_cents / 100).toFixed(2);
+                const value    = (t.price_cents * t.qty / 100).toFixed(2);
+                return (
+                  <Box key={t.trade_id || i} sx={{
+                    display: "grid", gridTemplateColumns: "80px 90px 1fr 70px 1fr",
                     gap: 2, py: 1.1, alignItems: "center",
-                    borderBottom: i < recentTrades.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                    borderBottom: i < recentTrades.length - 1 ? `1px solid ${c.rowBdr}` : "none",
+                    "&:hover": { background: c.rowHov },
                   }}>
-                    <Typography sx={{ fontWeight: 700, color: "#e0e7ff", fontSize: 13 }}>{t.symbol}</Typography>
+                    <Typography sx={{ fontWeight: 700, color: c.t1, fontSize: 13 }}>{t.symbol}</Typography>
                     <Chip label={side || "TRADE"} size="small" sx={{
                       background: isBuy ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)",
                       color: isBuy ? "#22c55e" : "#ef4444",
                       fontWeight: 700, fontSize: 11, height: 22, width: "fit-content",
                     }} />
-                    <Typography sx={{ color: "#e0e7ff", fontSize: 13 }}>${price}</Typography>
-                    <Typography sx={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>{t.qty}</Typography>
-                    <Typography sx={{ color: "#e0e7ff", fontSize: 13, fontWeight: 600 }}>${value}</Typography>
+                    <Typography sx={{ color: c.t1, fontSize: 13 }}>${price}</Typography>
+                    <Typography sx={{ color: c.t2, fontSize: 13 }}>{t.qty}</Typography>
+                    <Typography sx={{ color: c.t1, fontSize: 13, fontWeight: 600 }}>${value}</Typography>
                   </Box>
-                </React.Fragment>
-              );
-            })}
+                );
+              })}
+            </Box>
           </Box>
         )}
       </Box>

@@ -13,8 +13,8 @@ import { useNavigate } from "react-router-dom";
 import useColors from "../../theme/useColors.js";
 
 const menuItems = [
-  { label: "Dashboard",   icon: <DashboardOutlinedIcon /> },
   { label: "Portfolio",   icon: <PieChartOutlineOutlinedIcon /> },
+  { label: "Trading board",   icon: <DashboardOutlinedIcon /> },
   { label: "Wallet",      icon: <AccountBalanceWalletOutlinedIcon /> },
   { label: "Logs",        icon: <TerminalOutlinedIcon /> },
 ];

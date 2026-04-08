@@ -205,7 +205,7 @@ const ExchangeDashboard = () => {
                 <DepthChart bids={bookData.bids || []} asks={bookData.asks || []} />
 
                 {/* L2 Order Book */}
-                <Box sx={{ background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "14px", boxShadow: c.shadow, overflow: "hidden" }}>
+                <Box onClick={() => setSelectedMenu("Order Book")} sx={{ background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "14px", boxShadow: c.shadow, overflow: "hidden", cursor: "pointer", transition: "border-color 0.15s", "&:hover": { borderColor: "#6366f1" } }}>
                   <Typography sx={{ px: 2, py: 1.5, fontWeight: 700, fontSize: 15, borderBottom: `1px solid ${c.border}`, color: c.t1 }}>
                     L2 Order Book
                   </Typography>
@@ -239,7 +239,7 @@ const ExchangeDashboard = () => {
                 </Box>
 
                 {/* Recent Trades */}
-                <Box sx={{ background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "14px", boxShadow: c.shadow, overflow: "hidden" }}>
+                <Box onClick={() => setSelectedMenu("Trades")} sx={{ background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: "14px", boxShadow: c.shadow, overflow: "hidden", cursor: "pointer", transition: "border-color 0.15s", "&:hover": { borderColor: "#6366f1" } }}>
                   <Typography sx={{ px: 2, py: 1.5, fontWeight: 700, fontSize: 15, borderBottom: `1px solid ${c.border}`, color: c.t1 }}>
                     Recent Trades
                   </Typography>
