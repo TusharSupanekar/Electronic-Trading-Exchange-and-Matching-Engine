@@ -162,34 +162,34 @@ async def create_order(req: CreateOrderRequest):
     if req.symbol != "AAPL":
         raise HTTPException(status_code=400, detail="Only AAPL supported in MVP")
 
-    # block SELL if user does not own enough shares
-    if req.side.value == "SELL":
-        owned_qty = get_holding_quantity(req.user_id, req.symbol)
+    # # block SELL if user does not own enough shares
+    # if req.side.value == "SELL":
+    #     owned_qty = get_holding_quantity(req.user_id, req.symbol)
+    #
+    #     if owned_qty < req.qty:
+    #         raise HTTPException(
+    #             status_code=400,
+    #             detail=f"Not enough shares to sell. Owned: {owned_qty}, Trying to sell: {req.qty}"
+    #         )
 
-        if owned_qty < req.qty:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Not enough shares to sell. Owned: {owned_qty}, Trying to sell: {req.qty}"
-            )
-
-    # block BUY if wallet balance is insufficient
-    if req.side.value == "BUY":
-        if req.type.value == "LIMIT" and req.price_cents:
-            required_cents = req.qty * req.price_cents
-        else:
-            # MARKET order — estimate from best ask
-            snap = engine.book.snapshot_l2(1)
-            best_ask_cents = snap["asks"][0][0] if snap.get("asks") else 0
-            required_cents = req.qty * best_ask_cents if best_ask_cents else 0
-
-        if required_cents > 0:
-            wallet = repository.get_wallet(int(req.user_id))
-            balance = wallet["balance_cents"]
-            if balance < required_cents:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Insufficient funds: need ${required_cents/100:.2f}, available ${balance/100:.2f}"
-                )
+    # # block BUY if wallet balance is insufficient
+    # if req.side.value == "BUY":
+    #     if req.type.value == "LIMIT" and req.price_cents:
+    #         required_cents = req.qty * req.price_cents
+    #     else:
+    #         # MARKET order — estimate from best ask
+    #         snap = engine.book.snapshot_l2(1)
+    #         best_ask_cents = snap["asks"][0][0] if snap.get("asks") else 0
+    #         required_cents = req.qty * best_ask_cents if best_ask_cents else 0
+    #
+    #     if required_cents > 0:
+    #         wallet = repository.get_wallet(int(req.user_id))
+    #         balance = wallet["balance_cents"]
+    #         if balance < required_cents:
+    #             raise HTTPException(
+    #                 status_code=400,
+    #                 detail=f"Insufficient funds: need ${required_cents/100:.2f}, available ${balance/100:.2f}"
+    #             )
 
     existing = sequencer.get_idempotent_result(req.user_id, req.client_order_id)
     if existing:
