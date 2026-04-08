@@ -27,7 +27,7 @@ const cardSx = {
   background: "#0f1728",
   border: "1px solid rgba(99,102,241,0.18)",
   borderRadius: "14px",
-  p: 2.5,
+  p: { xs: 1.5, sm: 2.5 },
 };
 
 // ── Add Payment Method Dialog ─────────────────────────────────────────────────
@@ -70,8 +70,8 @@ function AddMethodDialog({ open, onClose, onAdded, userId }) {
   const labelSx = { sx: { color: "rgba(255,255,255,0.5)" } };
 
   return (
-    <Dialog open={open} onClose={handleClose}
-      PaperProps={{ sx: { background: "#0f1728", border: "1px solid rgba(99,102,241,0.25)", borderRadius: "16px", minWidth: 380 } }}>
+    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="xs"
+      PaperProps={{ sx: { background: "#0f1728", border: "1px solid rgba(99,102,241,0.25)", borderRadius: "16px" } }}>
       <DialogTitle sx={{ color: "#e0e7ff", fontWeight: 700 }}>Add Payment Method</DialogTitle>
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: "12px !important" }}>
         <ToggleButtonGroup exclusive value={type} onChange={(_, v) => v && setType(v)}
@@ -157,8 +157,8 @@ function FundsDialog({ open, mode, onClose, onDone, userId, paymentMethods }) {
   const isDeposit = mode === "deposit";
 
   return (
-    <Dialog open={open} onClose={onClose}
-      PaperProps={{ sx: { background: "#0f1728", border: "1px solid rgba(99,102,241,0.25)", borderRadius: "16px", minWidth: 360 } }}>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs"
+      PaperProps={{ sx: { background: "#0f1728", border: "1px solid rgba(99,102,241,0.25)", borderRadius: "16px" } }}>
       <DialogTitle sx={{ color: "#e0e7ff", fontWeight: 700 }}>
         {isDeposit ? "Deposit Funds" : "Withdraw Funds"}
       </DialogTitle>
@@ -272,27 +272,27 @@ const Wallet = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: 860, mx: "auto", display: "flex", flexDirection: "column", gap: 2.5 }}>
+    <Box sx={{ width: "100%", display: "flex", flexDirection: "column", gap: 2.5 }}>
 
       {/* Balance Card */}
       <Box sx={{ ...cardSx, background: "linear-gradient(135deg, #0f1728 0%, #111827 100%)" }}>
         <Typography variant="overline" sx={{ color: "rgba(99,102,241,0.7)", letterSpacing: 1.5 }}>
           Total Balance
         </Typography>
-        <Typography sx={{ fontSize: 44, fontWeight: 800, color: "#e0e7ff", lineHeight: 1.15, mt: 0.5 }}>
+        <Typography sx={{ fontSize: { xs: 32, sm: 44 }, fontWeight: 800, color: "#e0e7ff", lineHeight: 1.15, mt: 0.5 }}>
           {wallet ? fmtUSD(wallet.balance_cents) : "--"}
         </Typography>
-        <Box sx={{ display: "flex", gap: 1.5, mt: 2.5 }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, mt: 2.5 }}>
           <Button variant="contained" startIcon={<ArrowDownwardIcon />}
             onClick={() => setFundsDialog({ open: true, mode: "deposit" })}
             disabled={paymentMethods.length === 0}
-            sx={{ background: "linear-gradient(135deg,#22c55e,#16a34a)", borderRadius: "10px", px: 3, fontWeight: 600 }}>
+            sx={{ background: "linear-gradient(135deg,#22c55e,#16a34a)", borderRadius: "10px", px: { xs: 2, sm: 3 }, fontWeight: 600, flex: { xs: "1 1 auto", sm: "0 0 auto" } }}>
             Deposit
           </Button>
           <Button variant="outlined" startIcon={<ArrowUpwardIcon />}
             onClick={() => setFundsDialog({ open: true, mode: "withdraw" })}
             disabled={!wallet || wallet.balance_cents === 0}
-            sx={{ borderColor: "#f59e0b", color: "#f59e0b", borderRadius: "10px", px: 3, fontWeight: 600, "&:hover": { borderColor: "#d97706", background: "rgba(245,158,11,0.08)" } }}>
+            sx={{ borderColor: "#f59e0b", color: "#f59e0b", borderRadius: "10px", px: { xs: 2, sm: 3 }, fontWeight: 600, flex: { xs: "1 1 auto", sm: "0 0 auto" }, "&:hover": { borderColor: "#d97706", background: "rgba(245,158,11,0.08)" } }}>
             Withdraw
           </Button>
         </Box>
@@ -305,8 +305,8 @@ const Wallet = () => {
 
       {/* Payment Methods */}
       <Box sx={cardSx}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 16, color: "#e0e7ff" }}>Payment Methods</Typography>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2, flexWrap: "wrap", gap: 1 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: { xs: 14, sm: 16 }, color: "#e0e7ff" }}>Payment Methods</Typography>
           <Button size="small" startIcon={<AddIcon />} onClick={() => setAddMethodOpen(true)}
             sx={{ color: "#818cf8", border: "1px solid rgba(99,102,241,0.3)", borderRadius: "8px", textTransform: "none", "&:hover": { background: "rgba(99,102,241,0.08)" } }}>
             Add
@@ -324,9 +324,10 @@ const Wallet = () => {
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
             {paymentMethods.map((pm) => (
               <Box key={pm.payment_method_id} sx={{
-                display: "flex", alignItems: "center", gap: 1.5, p: 1.75, borderRadius: "12px",
+                display: "flex", alignItems: "center", gap: 1, p: { xs: 1.25, sm: 1.75 }, borderRadius: "12px",
                 border: pm.is_default ? "1px solid rgba(99,102,241,0.45)" : "1px solid rgba(255,255,255,0.06)",
                 background: pm.is_default ? "rgba(99,102,241,0.07)" : "rgba(255,255,255,0.02)",
+                flexWrap: "wrap",
               }}>
                 {pm.method_type === "BANK"
                   ? <AccountBalanceIcon sx={{ color: "#818cf8", fontSize: 22 }} />
@@ -369,7 +370,7 @@ const Wallet = () => {
 
       {/* Transaction History */}
       <Box sx={cardSx}>
-        <Typography sx={{ fontWeight: 700, fontSize: 16, color: "#e0e7ff", mb: 2 }}>
+        <Typography sx={{ fontWeight: 700, fontSize: { xs: 14, sm: 16 }, color: "#e0e7ff", mb: 2 }}>
           Recent Transactions
         </Typography>
         {transactions.length === 0 ? (
@@ -389,24 +390,24 @@ const Wallet = () => {
               return (
                 <React.Fragment key={txn.txn_id}>
                   {i > 0 && <Divider sx={{ borderColor: "rgba(255,255,255,0.05)" }} />}
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 1.5 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 1.5, flexWrap: "wrap" }}>
                     <Box sx={{
-                      width: 36, height: 36, borderRadius: "50%",
+                      width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
                       display: "flex", alignItems: "center", justifyContent: "center",
                       background: meta.iconBg,
                     }}>
                       {meta.icon}
                     </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography sx={{ color: "#e0e7ff", fontSize: 14, fontWeight: 500 }}>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography sx={{ color: "#e0e7ff", fontSize: { xs: 13, sm: 14 }, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {meta.label}
                       </Typography>
-                      <Typography sx={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>
+                      <Typography sx={{ color: "rgba(255,255,255,0.35)", fontSize: { xs: 11, sm: 12 }, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {new Date(txn.created_at).toLocaleString()}
                         {txn.reference ? " · " + txn.reference : ""}
                       </Typography>
                     </Box>
-                    <Typography sx={{ fontWeight: 700, fontSize: 15, color: meta.amtColor }}>
+                    <Typography sx={{ fontWeight: 700, fontSize: { xs: 13, sm: 15 }, color: meta.amtColor, whiteSpace: "nowrap" }}>
                       {meta.sign}{fmtUSD(txn.amount_cents)}
                     </Typography>
                     <Chip label={txn.status} size="small" sx={{

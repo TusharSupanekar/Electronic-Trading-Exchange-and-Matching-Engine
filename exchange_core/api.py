@@ -13,10 +13,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 import httpx
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, APIRouter, Query
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, APIRouter, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from docker import repository
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from docker.db import get_connection, put_connection
 
@@ -65,6 +65,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    origin = request.headers.get("origin", "*")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+        headers={
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+        },
+    )
+
 
 class CreateOrderRequest(BaseModel):
     user_id: str

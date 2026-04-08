@@ -157,6 +157,16 @@ def get_user_by_email(email):
 
     return user
 
+def get_all_users():
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT id, username, email FROM users ORDER BY id")
+    rows = cur.fetchall()
+    cur.close()
+    put_connection(conn)
+    return rows
+
+
 def get_user_holdings(user_id):
     conn = get_connection()
     cur = conn.cursor()

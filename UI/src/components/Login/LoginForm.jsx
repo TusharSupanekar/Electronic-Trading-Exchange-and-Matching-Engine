@@ -205,6 +205,7 @@ export default function LoginForm() {
             borderRadius: "28px",
             boxShadow: "0 20px 60px rgba(15, 23, 42, 0.14)",
             border: "1px solid rgba(15,23,42,0.06)",
+            backgroundColor: "#ffffff",
           }}
         >
           <CardContent sx={{ p: 4 }}>
@@ -230,6 +231,14 @@ export default function LoginForm() {
                         <EmailOutlinedIcon sx={{ color: "#64748B" }} />
                       </InputAdornment>
                     ),
+                    sx: { backgroundColor: "#ffffff", color: "#0F172A" },
+                  }}
+                  InputLabelProps={{ sx: { color: "#64748B" } }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": { borderColor: "#CBD5E1" },
+                      "&:hover fieldset": { borderColor: "#94A3B8" },
+                    },
                   }}
                 />
 
@@ -246,6 +255,14 @@ export default function LoginForm() {
                         <LockOutlinedIcon sx={{ color: "#64748B" }} />
                       </InputAdornment>
                     ),
+                    sx: { backgroundColor: "#ffffff", color: "#0F172A" },
+                  }}
+                  InputLabelProps={{ sx: { color: "#64748B" } }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      "& fieldset": { borderColor: "#CBD5E1" },
+                      "&:hover fieldset": { borderColor: "#94A3B8" },
+                    },
                   }}
                 />
 

@@ -13,13 +13,13 @@ import { useNavigate } from "react-router-dom";
 import useColors from "../../theme/useColors.js";
 
 const menuItems = [
-  { label: "Dashboard",   icon: <DashboardOutlinedIcon /> },
   { label: "Portfolio",   icon: <PieChartOutlineOutlinedIcon /> },
+  { label: "Trading Board", icon: <DashboardOutlinedIcon /> },
   { label: "Wallet",      icon: <AccountBalanceWalletOutlinedIcon /> },
   { label: "Logs",        icon: <TerminalOutlinedIcon /> },
 ];
 
-const SidePanel = ({ selected = "Dashboard", onSelect }) => {
+const SidePanel = ({ selected = "Trading Board", onSelect }) => {
   const navigate = useNavigate();
   const c = useColors();
 
