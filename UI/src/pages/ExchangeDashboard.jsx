@@ -29,12 +29,14 @@ const ExchangeDashboard = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const c = useColors();
 
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
   useEffect(() => {
     const fetchMarketData = async () => {
       try {
         const [bookRes, tradesRes] = await Promise.all([
-          fetch("http://localhost:8000/book/snapshot"),
-          fetch("http://localhost:8000/trades"),
+          fetch(`${API_URL}/book/snapshot`),
+          fetch(`${API_URL}/trades`),
         ]);
         setBookData((await bookRes.json()) || { bids: [], asks: [] });
         setTrades((await tradesRes.json())?.trades || []);
@@ -48,7 +50,7 @@ const ExchangeDashboard = () => {
   useEffect(() => {
     const fetchCandles = async () => {
       try {
-        const res = await fetch(`http://localhost:8000/candles?symbol=AAPL&interval=${chartInterval}&limit=200`);
+        const res = await fetch(`${API_URL}/candles?symbol=AAPL&interval=${chartInterval}&limit=200`);
         const data = await res.json();
         setCandles(Array.isArray(data) ? data : []);
       } catch (err) { console.error("Candles fetch error:", err); }
