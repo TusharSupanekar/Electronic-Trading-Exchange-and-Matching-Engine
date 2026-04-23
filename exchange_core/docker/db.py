@@ -5,23 +5,23 @@ import os
 
 _DB_WORKERS = 40
 
-DATABASE_URL = os.getenv("DATABSE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL:
     _pool = pool.ThreadedConnectionPool(
         minconn=2,
-        maxconn=_DB_WORKERS + 5,  # slight headroom above worker count
+        maxconn=_DB_WORKERS + 5,
         dsn=DATABASE_URL,
     )
-
-_pool = pool.ThreadedConnectionPool(
-    minconn=10,
-    maxconn=_DB_WORKERS + 5,  # slight headroom above worker count
-    dbname="trading_exchange",
-    user="postgres",
-    password="postgres",
-    host="localhost",
-    port="5432",
-)
+else:
+    _pool = pool.ThreadedConnectionPool(
+        minconn=10,
+        maxconn=_DB_WORKERS + 5,
+        dbname="trading_exchange",
+        user="postgres",
+        password="postgres",
+        host="localhost",
+        port="5432",
+    )
 
 # Single shared executor — limits concurrent DB threads to _DB_WORKERS,
 # so the connection pool is never exhausted.
