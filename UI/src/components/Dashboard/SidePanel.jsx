@@ -14,12 +14,13 @@ import useColors from "../../theme/useColors.js";
 
 const menuItems = [
   { label: "Portfolio",   icon: <PieChartOutlineOutlinedIcon /> },
-  { label: "Trading Board", icon: <DashboardOutlinedIcon /> },
+  { label: "Dashboard", icon: <DashboardOutlinedIcon /> },
   { label: "Wallet",      icon: <AccountBalanceWalletOutlinedIcon /> },
+  { label: "Orders",        icon: <TerminalOutlinedIcon /> },
   { label: "Logs",        icon: <TerminalOutlinedIcon /> },
 ];
 
-const SidePanel = ({ selected = "Trading Board", onSelect }) => {
+const SidePanel = ({ selected = "Dashboard", onSelect }) => {
   const navigate = useNavigate();
   const c = useColors();
 

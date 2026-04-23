@@ -84,11 +84,13 @@ class MatchingEngineService:
         while self.running:
             cmd = await self.command_queue.get()
             self.seq_applied = cmd.seq
-
-            if cmd.type == "NEW_ORDER":
-                await self._handle_new_order(cmd)
-            elif cmd.type == "CANCEL_ORDER":
-                await self._handle_cancel_order(cmd)
+            try:
+                if cmd.type == "NEW_ORDER":
+                    await self._handle_new_order(cmd)
+                elif cmd.type == "CANCEL_ORDER":
+                    await self._handle_cancel_order(cmd)
+            except Exception as e:
+                log.error("Engine error processing cmd seq=%s type=%s: %s", cmd.seq, cmd.type, e)
 
     async def replay_from_db(self) -> None:
         commands = get_all_commands()
@@ -182,22 +184,28 @@ class MatchingEngineService:
                     buyer = taker
                     seller = maker
 
-                await loop.run_in_executor(
-                    None,
-                    update_holding_after_buy,
-                    buyer.user_id,
-                    t.symbol,
-                    t.qty,
-                    t.price_cents / 100
-                )
+                try:
+                    await loop.run_in_executor(
+                        None,
+                        update_holding_after_buy,
+                        buyer.user_id,
+                        t.symbol,
+                        t.qty,
+                        t.price_cents / 100
+                    )
+                except Exception as e:
+                    log.error("HOLDINGS buy update FAILED user=%s error=%s", buyer.user_id, e)
 
-                await loop.run_in_executor(
-                    None,
-                    update_holding_after_sell,
-                    seller.user_id,
-                    t.symbol,
-                    t.qty
-                )
+                try:
+                    await loop.run_in_executor(
+                        None,
+                        update_holding_after_sell,
+                        seller.user_id,
+                        t.symbol,
+                        t.qty
+                    )
+                except Exception as e:
+                    log.error("HOLDINGS sell update FAILED user=%s error=%s", seller.user_id, e)
 
                 trade_value_cents = t.qty * t.price_cents
                 ref = f"trade:{t.trade_id}"

@@ -121,9 +121,11 @@ const TopBar = ({ appName = "Trading Exchange", profileName = "T", onMenuClick }
             </IconButton>
           </Tooltip>
 
-          <Avatar sx={{ width: 42, height: 42, bgcolor: "#6366f1", fontWeight: 700, cursor: "pointer" }}>
-            {profileName ? profileName[0].toUpperCase() : <AccountCircleOutlinedIcon />}
-          </Avatar>
+          <Tooltip title={profileName || ""} arrow>
+            <Avatar sx={{ width: 42, height: 42, bgcolor: "#6366f1", fontWeight: 700, cursor: "pointer" }}>
+              {profileName ? profileName[0].toUpperCase() : <AccountCircleOutlinedIcon />}
+            </Avatar>
+          </Tooltip>
         </Box>
 
       </Toolbar>

@@ -15,7 +15,7 @@ import Portfolio from "../components/Dashboard/Portfolio";
 import useColors from "../theme/useColors.js";
 
 const ExchangeDashboard = () => {
-  const [selectedMenu, setSelectedMenu] = useState("Trading Board");
+  const [selectedMenu, setSelectedMenu] = useState("Portfolio");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [candles, setCandles] = useState([]);
   const [bookData, setBookData] = useState({ bids: [], asks: [] });
@@ -74,7 +74,7 @@ const ExchangeDashboard = () => {
 
   return (
     <Box sx={{ minHeight: "100vh", background: c.pageBg, display: "flex", flexDirection: "column" }}>
-      <TopBar appName="Trading Exchange" onMenuClick={handleDrawerToggle} />
+      <TopBar appName="Trading Exchange" onMenuClick={handleDrawerToggle} profileName={localStorage.getItem("username") || "?"} />
 
       <Box sx={{ display: "flex", flex: 1, alignItems: "stretch" }}>
 
@@ -102,7 +102,7 @@ const ExchangeDashboard = () => {
         <Box sx={{ flex: 1, p: { xs: 2, md: 3 }, color: c.t1, background: c.pageBg, minWidth: 0, overflowY: "auto" }}>
 
           {/* ── DASHBOARD ── */}
-          {selectedMenu === "Trading Board" && (
+          {selectedMenu === "Dashboard" && (
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", xl: "1fr 340px" }, gap: 2, alignItems: "start" }}>
 
               {/* LEFT COLUMN */}
