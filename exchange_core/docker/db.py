@@ -1,8 +1,17 @@
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from psycopg2 import pool
+import os
 
 _DB_WORKERS = 40
+
+DATABSE_URL = os.getenv("DATABSE_URL")
+if DATABSE_URL:
+    _pool = pool.ThreadedConnectionPool(
+        minconn=2,
+        maxconn=_DB_WORKERS + 5,  # slight headroom above worker count
+        dsn=DATABSE_URL,
+    )
 
 _pool = pool.ThreadedConnectionPool(
     minconn=10,
