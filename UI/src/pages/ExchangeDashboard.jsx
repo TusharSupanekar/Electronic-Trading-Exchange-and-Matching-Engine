@@ -405,7 +405,8 @@ const InlineOrderPanel = ({ bestBid, bestAsk }) => {
     if (!userId) return showNotification("Not logged in", "error");
     setSubmitting(true);
     try {
-      const res = await fetch("http://localhost:8000/orders", {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_URL}/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -437,10 +438,11 @@ const InlineOrderPanel = ({ bestBid, bestAsk }) => {
   const cancelAll = async () => {
     if (!userId) return;
     try {
-      const res = await fetch(`http://localhost:8000/orders?user_id=${userId}&status=resting&limit=50`);
+      const cancelAPI = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const res = await fetch(`${cancelAPI}/orders?user_id=${userId}&status=resting&limit=50`);
       const data = await res.json();
       await Promise.all((data.orders || []).map((o) =>
-        fetch(`http://localhost:8000/orders/${o.order_id}`, { method: "DELETE" })
+        fetch(`${cancelAPI}/orders/${o.order_id}`, { method: "DELETE" })
       ));
       showNotification("All active orders cancelled", "success");
     } catch {
@@ -594,18 +596,24 @@ const OrdersPage = () => {
   const [orders, setOrders] = React.useState([]);
   const userId = localStorage.getItem("user_id");
   const c = useColors();
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
   React.useEffect(() => {
     if (!userId) return;
-    fetch(`http://localhost:8000/orders?user_id=${userId}&limit=50`)
-      .then((r) => r.json())
-      .then((d) => setOrders(d.orders || []))
-      .catch(console.error);
+    const fetchOrders = () => {
+      fetch(`${API_URL}/orders?user_id=${userId}&limit=100`)
+        .then((r) => r.json())
+        .then((d) => setOrders(d.orders || []))
+        .catch(console.error);
+    };
+    fetchOrders();
+    const timer = setInterval(fetchOrders, 3000);
+    return () => clearInterval(timer);
   }, [userId]);
 
   const cancelOrder = async (orderId) => {
     try {
-      await fetch(`http://localhost:8000/orders/${orderId}`, { method: "DELETE" });
+      await fetch(`${API_URL}/orders/${orderId}`, { method: "DELETE" });
       setOrders((prev) => prev.map((o) => o.order_id === orderId ? { ...o, status: "CANCELED" } : o));
     } catch (e) { console.error(e); }
   };

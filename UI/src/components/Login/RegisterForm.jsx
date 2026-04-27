@@ -51,14 +51,21 @@ export default function RegisterForm({ onClose, onSuccess }) {
     }
   };
 
+  const lightFieldSx = {
+    "& .MuiOutlinedInput-root": {
+      "& fieldset": { borderColor: "#CBD5E1" },
+      "&:hover fieldset": { borderColor: "#94A3B8" },
+    },
+  };
+
   return (
-    <CardContent sx={{ p: 4 }}>
+    <CardContent sx={{ p: 4, backgroundColor: "#ffffff" }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
         <Typography sx={{ fontSize: "28px", fontWeight: 800, color: "#0F172A" }}>
           Create account
         </Typography>
 
-        <IconButton onClick={onClose}>
+        <IconButton onClick={onClose} sx={{ color: "#64748B" }}>
           <CloseIcon />
         </IconButton>
       </Box>
@@ -81,7 +88,10 @@ export default function RegisterForm({ onClose, onSuccess }) {
                   <PersonOutlineIcon sx={{ color: "#64748B" }} />
                 </InputAdornment>
               ),
+              sx: { backgroundColor: "#ffffff", color: "#0F172A" },
             }}
+            InputLabelProps={{ sx: { color: "#64748B" } }}
+            sx={lightFieldSx}
           />
 
           <TextField
@@ -97,7 +107,10 @@ export default function RegisterForm({ onClose, onSuccess }) {
                   <EmailOutlinedIcon sx={{ color: "#64748B" }} />
                 </InputAdornment>
               ),
+              sx: { backgroundColor: "#ffffff", color: "#0F172A" },
             }}
+            InputLabelProps={{ sx: { color: "#64748B" } }}
+            sx={lightFieldSx}
           />
 
           <TextField
@@ -113,7 +126,10 @@ export default function RegisterForm({ onClose, onSuccess }) {
                   <LockOutlinedIcon sx={{ color: "#64748B" }} />
                 </InputAdornment>
               ),
+              sx: { backgroundColor: "#ffffff", color: "#0F172A" },
             }}
+            InputLabelProps={{ sx: { color: "#64748B" } }}
+            sx={lightFieldSx}
           />
 
           {error && (

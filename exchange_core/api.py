@@ -140,6 +140,35 @@ async def get_trades(limit: int = 50):
     }
 
 
+@app.get("/orders")
+async def list_orders(user_id: str = None, status: str = None, limit: int = 100):
+    orders = list(engine.orders.values())
+    if user_id:
+        orders = [o for o in orders if str(o.user_id) == str(user_id)]
+    if status:
+        orders = [o for o in orders if o.status.value.lower() == status.lower()]
+    orders = sorted(orders, key=lambda o: o.created_ms, reverse=True)[:limit]
+    return {
+        "orders": [
+            {
+                "order_id": o.order_id,
+                "client_order_id": o.client_order_id,
+                "user_id": o.user_id,
+                "symbol": o.symbol,
+                "side": o.side.value,
+                "type": o.type.value,
+                "qty": o.qty,
+                "remaining_qty": o.remaining_qty,
+                "price_cents": o.price_cents,
+                "status": o.status.value,
+                "reject_reason": o.reject_reason,
+                "created_ms": o.created_ms,
+            }
+            for o in orders
+        ]
+    }
+
+
 @app.get("/orders/{order_id}")
 async def get_order(order_id: str):
     order = engine.orders.get(order_id)
