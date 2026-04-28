@@ -83,13 +83,16 @@ class MatchingEngineService:
     async def run(self) -> None:
         self.running = True
         while self.running:
-            cmd = await self.command_queue.get()
-            self.seq_applied = cmd.seq
+            try:
+                cmd = await self.command_queue.get()
+                self.seq_applied = cmd.seq
 
-            if cmd.type == "NEW_ORDER":
-                await self._handle_new_order(cmd)
-            elif cmd.type == "CANCEL_ORDER":
-                await self._handle_cancel_order(cmd)
+                if cmd.type == "NEW_ORDER":
+                    await self._handle_new_order(cmd)
+                elif cmd.type == "CANCEL_ORDER":
+                    await self._handle_cancel_order(cmd)
+            except Exception as e:
+                log.error("Engine loop error (continuing): %s", e)
 
     async def replay_from_db(self) -> None:
         commands = get_all_commands()
