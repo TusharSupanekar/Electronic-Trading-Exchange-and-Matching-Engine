@@ -50,6 +50,7 @@ def insert_command(seq, command_type, payload, created_ms):
         cur.execute("""
             INSERT INTO commands (seq, command_type, payload_json, created_ms)
             VALUES (%s, %s, %s, %s)
+            ON CONFLICT (seq) DO NOTHING
         """, (seq, command_type, json.dumps(payload), created_ms))
         conn.commit()
         cur.close()
