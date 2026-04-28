@@ -24,7 +24,7 @@ from docker.db import DB_EXECUTOR
 from engine import Sequencer, MatchingEngineService, Command
 from publisher import WebSocketPublisher, event_fanout_loop
 from models import Order, Side, OrderType, now_ms
-from docker.repository import insert_command, get_user_holdings, get_holding_quantity, get_max_seq
+from docker.repository import insert_command, get_user_holdings, get_holding_quantity, get_max_seq, get_orders_by_user
 
 sequencer = Sequencer()
 engine = MatchingEngineService(symbol="AAPL")
@@ -143,9 +143,14 @@ async def get_trades(limit: int = 50):
 
 @app.get("/orders")
 async def list_orders(user_id: str = None, status: str = None, limit: int = 100):
-    orders = list(engine.orders.values())
     if user_id:
-        orders = [o for o in orders if str(o.user_id) == str(user_id)]
+        loop = asyncio.get_running_loop()
+        orders = await loop.run_in_executor(DB_EXECUTOR, lambda: get_orders_by_user(user_id, limit))
+        if status:
+            orders = [o for o in orders if o["status"].lower() == status.lower()]
+        return {"orders": orders}
+
+    orders = list(engine.orders.values())
     if status:
         orders = [o for o in orders if o.status.value.lower() == status.lower()]
     orders = sorted(orders, key=lambda o: o.created_ms, reverse=True)[:limit]

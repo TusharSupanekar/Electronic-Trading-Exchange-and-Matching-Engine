@@ -64,6 +64,30 @@ def get_max_seq():
     return row[0]
 
 
+def get_orders_by_user(user_id: str, limit: int = 100):
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT order_id, client_order_id, user_id, symbol, side, type,
+                   qty, remaining_qty, price_cents, status, reject_reason, created_ms
+            FROM orders
+            WHERE user_id = %s
+            ORDER BY created_ms DESC
+            LIMIT %s
+        """, (user_id, limit))
+        rows = cur.fetchall()
+        cur.close()
+    return [
+        {
+            "order_id": r[0], "client_order_id": r[1], "user_id": r[2],
+            "symbol": r[3], "side": r[4], "type": r[5], "qty": r[6],
+            "remaining_qty": r[7], "price_cents": r[8], "status": r[9],
+            "reject_reason": r[10], "created_ms": r[11],
+        }
+        for r in rows
+    ]
+
+
 def get_all_commands():
     with get_conn() as conn:
         cur = conn.cursor()
