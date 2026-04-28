@@ -55,6 +55,15 @@ def insert_command(seq, command_type, payload, created_ms):
         cur.close()
 
 
+def get_max_seq():
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT COALESCE(MAX(seq), 0) FROM commands")
+        row = cur.fetchone()
+        cur.close()
+    return row[0]
+
+
 def get_all_commands():
     with get_conn() as conn:
         cur = conn.cursor()

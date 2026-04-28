@@ -24,7 +24,7 @@ from docker.db import DB_EXECUTOR
 from engine import Sequencer, MatchingEngineService, Command
 from publisher import WebSocketPublisher, event_fanout_loop
 from models import Order, Side, OrderType, now_ms
-from docker.repository import insert_command, get_user_holdings, get_holding_quantity
+from docker.repository import insert_command, get_user_holdings, get_holding_quantity, get_max_seq
 
 sequencer = Sequencer()
 engine = MatchingEngineService(symbol="AAPL")
@@ -38,7 +38,8 @@ async def lifespan(app: FastAPI):
 
     # Replay state before starting live processing
     await engine.replay_from_db()
-    sequencer.set_seq(engine.seq_applied)
+    max_seq = get_max_seq()
+    sequencer.set_seq(max(engine.seq_applied, max_seq))
 
     engine_task = asyncio.create_task(engine.run())
     fanout_task = asyncio.create_task(event_fanout_loop(engine, publisher))
