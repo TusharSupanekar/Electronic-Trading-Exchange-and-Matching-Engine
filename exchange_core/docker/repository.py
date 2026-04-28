@@ -11,6 +11,7 @@ def insert_order(order):
                 qty, remaining_qty, price_cents, status, reject_reason, created_ms
             )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (order_id) DO NOTHING
         """, (
             order.order_id, order.client_order_id, order.user_id, order.symbol,
             order.side.value, order.type.value, order.qty, order.remaining_qty,

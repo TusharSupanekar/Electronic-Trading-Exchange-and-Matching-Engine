@@ -24,7 +24,7 @@ from docker.db import DB_EXECUTOR
 from engine import Sequencer, MatchingEngineService, Command
 from publisher import WebSocketPublisher, event_fanout_loop
 from models import Order, Side, OrderType, now_ms
-from docker.repository import insert_command, get_user_holdings, get_holding_quantity, get_max_seq, get_orders_by_user
+from docker.repository import insert_command, insert_order, get_user_holdings, get_holding_quantity, get_max_seq, get_orders_by_user
 
 sequencer = Sequencer()
 engine = MatchingEngineService(symbol="AAPL")
@@ -264,6 +264,7 @@ async def create_order(req: CreateOrderRequest):
 
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(DB_EXECUTOR, lambda: insert_command(seq, "NEW_ORDER", payload, order.created_ms))
+    await loop.run_in_executor(DB_EXECUTOR, insert_order, order)
 
     cmd = Command(seq=seq, type="NEW_ORDER", payload={"order": order})
     await engine.submit(cmd)
