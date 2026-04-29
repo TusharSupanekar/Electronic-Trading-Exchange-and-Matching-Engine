@@ -90,10 +90,17 @@ def get_orders_by_user(user_id: str, limit: int = 100):
     ]
 
 
-def get_all_commands():
+def get_all_commands(limit: int = 10000):
     with get_conn() as conn:
         cur = conn.cursor()
-        cur.execute("SELECT seq, command_type, payload_json, created_ms FROM commands ORDER BY seq ASC")
+        cur.execute("""
+            SELECT seq, command_type, payload_json, created_ms
+            FROM (
+                SELECT seq, command_type, payload_json, created_ms
+                FROM commands ORDER BY seq DESC LIMIT %s
+            ) sub
+            ORDER BY seq ASC
+        """, (limit,))
         rows = cur.fetchall()
         cur.close()
     return [
