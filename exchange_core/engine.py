@@ -76,6 +76,8 @@ class MatchingEngineService:
 
         self.trades: List[Dict[str, Any]] = []
         self.orders: Dict[str, Order] = {}
+        self._MAX_TRADES = 5000
+        self._MAX_ORDERS = 20000
 
     async def submit(self, cmd: Command) -> None:
         await self.command_queue.put(cmd)
@@ -243,6 +245,8 @@ class MatchingEngineService:
                 "ts_ms": t.ts_ms,
             }
             self.trades.append(trade_event)
+            if len(self.trades) > self._MAX_TRADES:
+                self.trades = self.trades[-self._MAX_TRADES:]
 
             if not self.is_replaying:
                 await self.event_queue.put(trade_event)
@@ -276,6 +280,11 @@ class MatchingEngineService:
         if not self.is_replaying:
             await self.event_queue.put(self._book_l1_event(cmd.seq))
             await self.event_queue.put(self._book_snapshot_event(cmd.seq))
+
+        if len(self.orders) > self._MAX_ORDERS:
+            done = [oid for oid, o in self.orders.items() if o.status.value in ("FILLED", "CANCELED", "REJECTED")]
+            for oid in done[:len(self.orders) - self._MAX_ORDERS]:
+                del self.orders[oid]
 
     async def _handle_cancel_order(self, cmd: Command) -> None:
         loop = asyncio.get_running_loop()
