@@ -73,20 +73,24 @@ const TopBar = ({ appName = "Trading Exchange", profileName = "T", onMenuClick }
       boxShadow: c.isDark ? "none" : "0 1px 8px rgba(0,0,0,0.07)",
       px: { xs: 1, sm: 2, md: 3 },
     }}>
-      <Toolbar sx={{ minHeight: "72px !important", display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
+      <Toolbar sx={{ minHeight: { xs: "56px !important", md: "72px !important" }, display: "flex", justifyContent: "space-between", gap: 1 }}>
 
         {/* Left */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
           <IconButton onClick={onMenuClick} sx={{ color: c.t1 }}>
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: "0.5px", color: c.t1, whiteSpace: "nowrap" }}>
+          <Typography variant="h6" sx={{
+            fontWeight: 700, letterSpacing: "0.5px", color: c.t1, whiteSpace: "nowrap",
+            fontSize: { xs: "14px", sm: "16px", md: "18px" },
+            display: { xs: "none", sm: "block" },
+          }}>
             {appName}
           </Typography>
         </Box>
 
-        {/* Center */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap", justifyContent: "center", flex: 1 }}>
+        {/* Center — hidden on mobile */}
+        <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 2, flex: 1, justifyContent: "center" }}>
           <Paper elevation={0} sx={{
             display: "flex", alignItems: "center", gap: 1, px: 2, py: 1,
             borderRadius: "14px", backgroundColor: "rgba(99,102,241,0.08)",
@@ -107,13 +111,21 @@ const TopBar = ({ appName = "Trading Exchange", profileName = "T", onMenuClick }
         </Box>
 
         {/* Right */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
+          {/* Time on mobile only */}
+          <Typography sx={{
+            display: { xs: "block", md: "none" },
+            fontSize: "11px", color: c.t3, whiteSpace: "nowrap",
+          }}>
+            {currentTime.split(",").slice(-1)[0]?.trim()}
+          </Typography>
+
           <Tooltip title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
             <IconButton onClick={toggleColorMode} sx={{
               color: c.t2,
               border: `1px solid ${c.border}`,
               borderRadius: "10px",
-              width: 38, height: 38,
+              width: { xs: 32, md: 38 }, height: { xs: 32, md: 38 },
               "&:hover": { background: "rgba(99,102,241,0.1)", color: "#6366f1" },
               transition: "all 0.2s",
             }}>
@@ -121,9 +133,11 @@ const TopBar = ({ appName = "Trading Exchange", profileName = "T", onMenuClick }
             </IconButton>
           </Tooltip>
 
-          <Avatar sx={{ width: 42, height: 42, bgcolor: "#6366f1", fontWeight: 700, cursor: "pointer" }}>
-            {profileName ? profileName[0].toUpperCase() : <AccountCircleOutlinedIcon />}
-          </Avatar>
+          <Tooltip title={profileName || ""} arrow>
+            <Avatar sx={{ width: { xs: 34, md: 42 }, height: { xs: 34, md: 42 }, bgcolor: "#6366f1", fontWeight: 700, cursor: "pointer" }}>
+              {profileName ? profileName[0].toUpperCase() : <AccountCircleOutlinedIcon />}
+            </Avatar>
+          </Tooltip>
         </Box>
 
       </Toolbar>
